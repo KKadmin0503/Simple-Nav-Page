@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, relative, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 
@@ -7,6 +7,15 @@ const workerEntry = resolve('worker.js');
 const bindingName = 'CONFIG_KV';
 const namespaceTitle = process.env.CONFIG_KV_NAMESPACE || `${workerName}-config`;
 const generatedConfigPath = resolve('.wrangler/generated-wrangler.toml');
+const generatedSiteDir = resolve('.wrangler/site');
+const staticEntries = [
+  'index.html',
+  'admin.html',
+  'style.css',
+  'links.json',
+  'assets',
+  'data'
+];
 
 main();
 
@@ -18,7 +27,14 @@ function main() {
 
   const namespaceId = process.env.CONFIG_KV_ID || process.env.CONFIG_KV_NAMESPACE_ID || ensureKvNamespace(namespaceTitle);
 
+  prepareStaticAssets();
   writeGeneratedConfig(namespaceId);
+
+  if (process.env.DEPLOY_DRY_RUN === '1') {
+    console.log('[deploy] Dry run complete. Skipping Wrangler deploy.');
+    return;
+  }
+
   runWrangler(['deploy', '--config', generatedConfigPath]);
 
   if (process.env.ADMIN_PASSWORD) {
@@ -31,6 +47,22 @@ function main() {
   }
 
   console.log('[deploy] Done.');
+}
+
+function prepareStaticAssets() {
+  assertInsideWorkspace(generatedSiteDir);
+  rmSync(generatedSiteDir, { recursive: true, force: true });
+  mkdirSync(generatedSiteDir, { recursive: true });
+
+  staticEntries.forEach(entry => {
+    const source = resolve(entry);
+    if (!existsSync(source)) {
+      throw new Error(`Static asset entry was not found: ${source}`);
+    }
+    cpSync(source, resolve(generatedSiteDir, entry), { recursive: true });
+  });
+
+  console.log(`[deploy] Prepared static assets in ${generatedSiteDir}.`);
 }
 
 function ensureKvNamespace(title) {
@@ -59,10 +91,13 @@ function findNamespace(title) {
 function writeGeneratedConfig(namespaceId) {
   mkdirSync(dirname(generatedConfigPath), { recursive: true });
   const mainPath = toTomlPath(relative(dirname(generatedConfigPath), workerEntry));
+  const assetsPath = toTomlPath(relative(dirname(generatedConfigPath), generatedSiteDir));
   writeFileSync(generatedConfigPath, `name = "${workerName}"
 main = "${mainPath}"
 compatibility_date = "2026-06-07"
 workers_dev = true
+
+assets = { directory = "${assetsPath}", binding = "ASSETS", not_found_handling = "none" }
 
 [[kv_namespaces]]
 binding = "${bindingName}"
@@ -74,6 +109,14 @@ preview_id = "${namespaceId}"
 
 function toTomlPath(value) {
   return value.replace(/\\/g, '/');
+}
+
+function assertInsideWorkspace(path) {
+  const workspace = resolve('.');
+  const target = resolve(path);
+  if (target !== workspace && !target.startsWith(`${workspace}${process.platform === 'win32' ? '\\' : '/'}`)) {
+    throw new Error(`Refusing to modify path outside workspace: ${target}`);
+  }
 }
 
 function parseNamespaces(output) {

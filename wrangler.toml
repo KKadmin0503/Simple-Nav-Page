@@ -3,6 +3,6 @@ main = "worker.js"
 compatibility_date = "2026-06-07"
 workers_dev = true
 
-# KV is created and bound automatically by scripts/deploy-worker-auto.mjs.
+# KV and static assets are prepared automatically by scripts/deploy-worker-auto.mjs.
 # In Cloudflare's deploy screen, use:
 # npm run worker:deploy

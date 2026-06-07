@@ -6,7 +6,7 @@
 
 ## ✨ 特点
 
-* 🚀 **无需服务器**：支持 GitHub Pages / Cloudflare Pages 部署
+* 🚀 **无需服务器**：支持 Cloudflare Worker 一次部署前台、后台接口和小工具
 
 * 🧩 **极简配置**：只需修改少量文件即可完成自定义
 
@@ -132,6 +132,18 @@ npm run worker:deploy
 
 `npm run worker:deploy` 会自动检查并创建 KV：`simple-nav-page-config`，不需要手动把 KV ID 写进 `wrangler.toml`。
 
+部署成功后，直接打开 Worker 域名就是导航页：
+
+```text
+https://你的-worker.workers.dev
+```
+
+后台地址：
+
+```text
+https://你的-worker.workers.dev/admin.html
+```
+
 ---
 
 #### 🔗 部署后使用方式
@@ -142,7 +154,9 @@ npm run worker:deploy
 https://api.xxx.com
 ```
 
-如果前台和 Worker 不同域，在 `index.html` 和 `admin.html` 里填写 Worker 根地址：
+当前推荐 Worker 同域部署，`index.html` 和 `admin.html` 的 `simple-nav-api-base` 保持空值即可自动使用当前域名。
+
+如果你另外单独部署 Pages，才需要在 `index.html` 和 `admin.html` 里填写 Worker 根地址：
 
 ```html
 <meta name="simple-nav-api-base" content="https://api.xxx.com">
@@ -174,12 +188,16 @@ Worker 会代理以下资源：
 
 ### 5️⃣ 部署
 
-* 使用 GitHub Pages
-* 或接入 Cloudflare Pages
-
 部署到 Cloudflare 时，通常需要先把代码推送到 GitHub，再在 Cloudflare Dashboard 里连接仓库。完整流程见 [`docs/cloudflare-github-deploy.md`](docs/cloudflare-github-deploy.md)。
 
-如果 Pages 和 Worker 不是同一个域名，需要在 `index.html` 和 `admin.html` 的 meta 里填写 Worker 根地址：
+推荐只部署 Worker，一个域名同时访问前台、后台和 API：
+
+* `/`：前台导航页
+* `/admin.html`：后台管理页
+* `/api/status`：Worker 状态
+* `/tools/<slug>/`：小工具页面
+
+如果 Pages 和 Worker 分开部署，才需要在 `index.html` 和 `admin.html` 的 meta 里填写 Worker 根地址：
 
 ```html
 <meta name="simple-nav-api-base" content="https://你的-worker.workers.dev">

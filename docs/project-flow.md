@@ -8,7 +8,7 @@
 
 - 前台负责搜索、分类导航、背景、一言、页面特效、标题离开提示、Live2D。
 - 后台负责配置站点信息、分类站点、小工具页面、JSON 导入导出和前台预览。
-- Worker 负责公共配置、分类站点、小工具托管、管理员登录、访问统计、点击统计和在线保存。
+- Worker 负责前台静态页面、公共配置、分类站点、小工具托管、管理员登录、访问统计、点击统计和在线保存。
 - 鼠标拖尾类效果已从当前路线中移除，避免影响页面流畅度。
 
 ## 2. 目录结构
@@ -106,15 +106,16 @@ npm run worker:dev
 npm run worker:deploy
 ```
 
-`npm run worker:deploy` 会自动检查并创建 KV：`simple-nav-page-config`，再生成临时配置部署 Worker。
+`npm run worker:deploy` 会自动检查并创建 KV：`simple-nav-page-config`，准备前台静态文件，再生成临时配置部署 Worker。
 
-8. 将站点静态文件部署到 GitHub Pages、Cloudflare Pages 或同类静态托管。
-9. 如果前台和 Worker 不在同一域名，需要保证前台请求的 API 地址指向 Worker。
-10. 打开 `admin.html`，输入管理员密码登录。
-11. 保存配置后，线上会写入 Worker/KV，前台刷新读取公共配置。
-12. 在后台“发布检查”页点击“检测 Worker”，或直接访问 `/api/status`，确认 `ADMIN_PASSWORD`、`CONFIG_KV`、配置、分类站点、小工具、访问统计和点击统计状态。
+8. 直接打开 Worker 域名访问前台导航页。
+9. 打开 `/admin.html`，输入管理员密码登录。
+10. 保存配置后，线上会写入 Worker/KV，前台刷新读取公共配置。
+11. 在后台“发布检查”页点击“检测 Worker”，或直接访问 `/api/status`，确认 `ADMIN_PASSWORD`、`CONFIG_KV`、配置、分类站点、小工具、访问统计和点击统计状态。
 
-如果走 Cloudflare Pages 连接 GitHub 仓库，完整步骤见 `docs/cloudflare-github-deploy.md`。
+如果走 Cloudflare 连接 GitHub 仓库，完整步骤见 `docs/cloudflare-github-deploy.md`。
+
+当前推荐 Worker 同域部署，`index.html` 和 `admin.html` 的 `simple-nav-api-base` 保持空值即可。
 
 如果 Pages 和 Worker 不同域，在 `index.html` 和 `admin.html` 里填写：
 

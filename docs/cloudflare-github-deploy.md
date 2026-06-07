@@ -2,6 +2,13 @@
 
 这份流程适用于在 Cloudflare Dashboard 里连接 GitHub 仓库部署。Cloudflare 自己拉取仓库并执行部署命令，不需要 GitHub Actions，也不需要在 GitHub 里配置 Cloudflare API Token。
 
+当前推荐只部署 Worker。Worker 会同时托管：
+
+- `/`：前台导航页
+- `/admin.html`：后台管理页
+- `/api/*`：配置、统计、登录和保存接口
+- `/tools/<slug>/`：小工具页面
+
 ## 1. 推送代码到 GitHub
 
 当前仓库远程地址：
@@ -19,7 +26,7 @@ git commit -m "feat: update nav deployment"
 git push origin main
 ```
 
-## 2. 部署 Worker 后台接口
+## 2. 部署 Worker
 
 在 Cloudflare Dashboard：
 
@@ -38,8 +45,9 @@ npm run worker:deploy
 
 - 检查是否存在 KV：`simple-nav-page-config`
 - 不存在时自动创建 KV
+- 准备前台静态文件
 - 自动生成带真实 KV ID 的临时 Wrangler 配置
-- 部署 `worker.js`
+- 部署 `worker.js` 和静态资源
 
 因此不需要手动把 KV ID 写入 `wrangler.toml`。
 
@@ -55,20 +63,21 @@ ADMIN_PASSWORD=你的后台管理员密码
 
 如果你在 Cloudflare 构建环境里也设置了 `ADMIN_PASSWORD`，自动部署脚本会尝试同步为 Worker Secret。未设置也不影响 Worker 部署，但后台登录会提示未配置密码。
 
-## 4. 部署静态前台
+## 4. 访问地址
 
-在 Cloudflare Pages：
+部署成功后，直接打开 Worker 域名就是导航页：
 
-1. 创建 Pages 项目。
-2. 连接同一个 GitHub 仓库。
-3. Framework preset 选择 `None`。
-4. Build command 留空。
-5. Build output directory 使用项目根目录。
-6. 部署完成后记录 Pages 域名。
+```text
+https://你的-worker.workers.dev
+```
 
-## 5. 连接前台和 Worker
+后台地址：
 
-如果 Pages 和 Worker 不是同一个域名，需要在 `index.html` 和 `admin.html` 里填写 Worker 根地址：
+```text
+https://你的-worker.workers.dev/admin.html
+```
+
+如果你额外单独部署 Pages，才需要在 `index.html` 和 `admin.html` 里填写 Worker 根地址：
 
 ```html
 <meta name="simple-nav-api-base" content="https://你的-worker.workers.dev">
@@ -82,10 +91,10 @@ ADMIN_PASSWORD=你的后台管理员密码
 - 后台向 Worker 调用登录、保存、发布检查和小工具接口。
 - `/tools/<slug>/` 小工具链接自动指向 Worker。
 
-## 6. 上线检查
+## 5. 上线检查
 
-1. 打开 Pages 域名确认前台正常。
-2. 打开 `admin.html`。
+1. 打开 Worker 域名确认前台正常。
+2. 打开 `/admin.html`。
 3. 输入 `ADMIN_PASSWORD` 登录。
 4. 进入“发布检查”页，点击“检测 Worker”。
 5. 确认 `ADMIN_PASSWORD`、`CONFIG_KV`、配置、分类站点、小工具和访问统计均正常。

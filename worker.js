@@ -10,6 +10,10 @@ export default {
       return serveTool(url, env);
     }
 
+    if (url.pathname === '/' && env.ASSETS) {
+      return env.ASSETS.fetch(request);
+    }
+
     const workerHost = url.host; 
     const workerPrefix = `${url.protocol}//${workerHost}/`;
 
@@ -18,7 +22,7 @@ export default {
     
     // 如果没有目标地址，显示欢迎页面
     if (!targetUrlStr) {
-      return new Response("成功！", {
+      return new Response("导航 Worker 已部署。", {
         headers: { "Content-Type": "text/html;charset=UTF-8" }
       });
     }
