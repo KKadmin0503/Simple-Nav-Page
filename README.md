@@ -79,7 +79,7 @@
 默认站点 Logo 和浏览器 favicon 位于：
 
 ```text
-assets/brand/chengyan-logo.svg
+assets/brand/chengyan-inkmark-logo.svg
 ```
 
 ---

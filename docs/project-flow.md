@@ -27,7 +27,7 @@ Simple-Nav-Page/
 ├─ links.json                  # 原始静态分类站点数据
 ├─ assets/
 │  ├─ brand/
-│  │  └─ chengyan-logo.svg    # 默认站点 Logo 和 favicon
+│  │  └─ chengyan-inkmark-logo.svg # 默认站点 Logo 和 favicon
 │  ├─ css/
 │  │  └─ admin.css             # 后台样式
 │  └─ js/

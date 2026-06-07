@@ -1,6 +1,6 @@
 import { loadConfig } from './config-loader.js';
 import { applyBackground } from './features/background.js?v=20260607-adapt-a11y2';
-import { applyBrowserFavicon } from './features/favicon.js?v=20260607-brand-logo';
+import { applyBrowserFavicon } from './features/favicon.js?v=20260607-inkmark-logo';
 import { initTabTitle } from './features/tab-title.js';
 import { initQuote } from './features/quote.js';
 import { createNetMode } from './features/net-mode.js';
