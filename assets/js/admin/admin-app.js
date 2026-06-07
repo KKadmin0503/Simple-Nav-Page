@@ -3,15 +3,15 @@ import {
   loadConfig,
   loadDefaultConfig,
   saveLocalConfig
-} from '../config-loader.js';
+} from '../config-loader.js?v=20260607-seo-brand';
 import {
   clearLocalLinks,
   loadDefaultLinks,
   loadLinksData,
   saveLocalLinks,
   sanitizeLinks
-} from '../links-loader.js';
-import { apiUrl, getApiBase, workerPathUrl } from '../api-client.js';
+} from '../links-loader.js?v=20260607-seo-brand';
+import { apiUrl, getApiBase, workerPathUrl } from '../api-client.js?v=20260607-seo-brand';
 
 const ADMIN_TOKEN_KEY = 'simple-nav-page-admin-token';
 const LOGIN_API = '/api/admin/login';

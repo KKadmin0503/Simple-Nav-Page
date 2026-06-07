@@ -1,4 +1,4 @@
-import { loadConfig } from './config-loader.js';
+import { loadConfig } from './config-loader.js?v=20260607-seo-brand';
 import { applyBackground } from './features/background.js?v=20260607-adapt-a11y2';
 import { applyBrowserFavicon } from './features/favicon.js?v=20260607-inkmark-logo';
 import { initTabTitle } from './features/tab-title.js';

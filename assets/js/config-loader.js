@@ -76,6 +76,12 @@ function mergeConfig(...configs) {
 function sanitizeConfig(config) {
   if (isPlainObject(config)) {
     delete config.interactionEffect;
+    if (config.site?.title === '一站导航') {
+      config.site.title = '澄砚导航';
+    }
+    if (config.tabTitle?.normalTitle === '一站导航') {
+      config.tabTitle.normalTitle = '澄砚导航';
+    }
   }
   return config;
 }

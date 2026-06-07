@@ -10,7 +10,7 @@ export default {
       return serveTool(url, env);
     }
 
-    if (url.pathname === '/' && env.ASSETS) {
+    if (env.ASSETS && isStaticAssetPath(url.pathname)) {
       return env.ASSETS.fetch(request);
     }
 
@@ -116,6 +116,18 @@ const TOOL_CONTENT_SECURITY_POLICY = [
   "script-src 'self' 'unsafe-inline' 'unsafe-eval' https:",
   "connect-src 'self' https:"
 ].join('; ');
+
+function isStaticAssetPath(pathname) {
+  return pathname === '/'
+    || pathname === '/index.html'
+    || pathname === '/admin.html'
+    || pathname === '/robots.txt'
+    || pathname === '/sitemap.xml'
+    || pathname === '/style.css'
+    || pathname === '/links.json'
+    || pathname.startsWith('/assets/')
+    || pathname.startsWith('/data/');
+}
 
 async function handleApi(request, env) {
   try {
@@ -550,7 +562,8 @@ async function getConfig(env, options = {}) {
   }
 
   const config = await store.get(CONFIG_KEY, 'json');
-  return jsonResponse(options.public ? publicConfig(config || {}) : (config || {}));
+  const normalized = normalizeLegacyConfig(config || {});
+  return jsonResponse(options.public ? publicConfig(normalized) : normalized);
 }
 
 async function saveConfig(request, env) {
@@ -611,6 +624,18 @@ function publicConfig(config) {
   const copy = JSON.parse(JSON.stringify(config));
   if (isPlainObject(copy.aiSiteMeta)) {
     delete copy.aiSiteMeta.apiKey;
+  }
+  return copy;
+}
+
+function normalizeLegacyConfig(config) {
+  if (!isPlainObject(config)) return {};
+  const copy = JSON.parse(JSON.stringify(config));
+  if (copy.site?.title === '一站导航') {
+    copy.site.title = '澄砚导航';
+  }
+  if (copy.tabTitle?.normalTitle === '一站导航') {
+    copy.tabTitle.normalTitle = '澄砚导航';
   }
   return copy;
 }
@@ -1761,7 +1786,8 @@ function jsonResponse(data, status = 200) {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type,Authorization',
-      'Cache-Control': 'no-cache'
+      'Cache-Control': 'no-cache',
+      'X-Robots-Tag': 'noindex, nofollow'
     }
   });
 }

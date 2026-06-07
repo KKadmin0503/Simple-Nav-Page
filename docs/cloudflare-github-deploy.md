@@ -77,6 +77,24 @@ https://你的-worker.workers.dev
 https://你的-worker.workers.dev/admin.html
 ```
 
+如果已绑定自定义域名，例如：
+
+```text
+https://www.chengyan.ccwu.cc/
+```
+
+优先使用自定义域名作为公开访问地址。项目已内置：
+
+- `/robots.txt`：允许收录前台，禁止收录后台和 API。
+- `/sitemap.xml`：提交首页地址给搜索引擎。
+- 首页 SEO `meta`、canonical、OpenGraph 和结构化数据。
+
+上线后可以到 Google Search Console、Bing Webmaster Tools、百度搜索资源平台添加这个域名，并提交：
+
+```text
+https://www.chengyan.ccwu.cc/sitemap.xml
+```
+
 如果你额外单独部署 Pages，才需要在 `index.html` 和 `admin.html` 里填写 Worker 根地址：
 
 ```html

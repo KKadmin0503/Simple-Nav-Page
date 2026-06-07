@@ -11,6 +11,8 @@ const generatedSiteDir = resolve('.wrangler/site');
 const staticEntries = [
   'index.html',
   'admin.html',
+  'robots.txt',
+  'sitemap.xml',
   'style.css',
   'links.json',
   'assets',
