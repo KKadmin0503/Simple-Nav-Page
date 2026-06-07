@@ -14,6 +14,7 @@ const staticEntries = [
   'robots.txt',
   'sitemap.xml',
   'BingSiteAuth.xml',
+  'baidu_verify_codeva-sekFmzjobM.html',
   '13efb167ebb12c15bdab1609ebcb75f5.txt',
   'style.css',
   'links.json',
