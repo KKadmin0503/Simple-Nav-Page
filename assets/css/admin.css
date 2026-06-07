@@ -506,6 +506,13 @@ textarea {
   margin-bottom: 12px;
 }
 
+.site-card-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .site-card-head strong {
   color: var(--nav-color-ink);
   font-size: 0.92rem;
@@ -819,6 +826,14 @@ textarea {
   .site-card-head {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .site-card-actions {
+    justify-content: stretch;
+  }
+
+  .site-card-actions > * {
+    flex: 1 1 120px;
   }
 
   .tool-usage-head,

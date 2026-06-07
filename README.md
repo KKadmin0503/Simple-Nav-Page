@@ -22,6 +22,8 @@
 
 * 🖼️ **自动网站图标**：自动获取 favicon（多源 fallback）
 
+* ✨ **站点信息自动匹配**：后台填入 URL 后可自动读取标题、简介和图标
+
 * 🌄 **随机背景图**：每次刷新自动切换背景
 
 * 🌐 **内外网地址切换**：默认外网，一键切换
@@ -233,6 +235,7 @@ Worker 需要配置：
 * `GET /api/links`：前台读取分类和站点
 * `GET /api/admin/links`：后台读取分类和站点
 * `PUT /api/admin/links`：后台保存分类和站点
+* `GET /api/admin/site-meta?url=`：后台根据 URL 自动匹配站点标题、描述和图标
 * `GET /api/tools`：公开读取小工具列表
 * `GET /api/admin/tools`：后台读取小工具列表
 * `PUT /api/admin/tools`：创建或更新小工具网站

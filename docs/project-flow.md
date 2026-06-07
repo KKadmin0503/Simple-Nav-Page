@@ -7,8 +7,8 @@
 项目已经从原始静态导航页改造成可配置个人门户：
 
 - 前台负责搜索、分类导航、背景、一言、页面特效、标题离开提示、Live2D。
-- 后台负责配置站点信息、分类站点、小工具页面、JSON 导入导出和前台预览。
-- Worker 负责前台静态页面、公共配置、分类站点、小工具托管、管理员登录、访问统计、点击统计和在线保存。
+- 后台负责配置站点信息、分类站点、站点信息自动匹配、小工具页面、JSON 导入导出和前台预览。
+- Worker 负责前台静态页面、公共配置、分类站点、站点元信息读取、小工具托管、管理员登录、访问统计、点击统计和在线保存。
 - 鼠标拖尾类效果已从当前路线中移除，避免影响页面流畅度。
 
 ## 2. 目录结构
@@ -18,7 +18,7 @@ Simple-Nav-Page/
 ├─ index.html                  # 前台导航页
 ├─ style.css                   # 前台样式
 ├─ admin.html                  # 后台管理页
-├─ worker.js                   # Cloudflare Worker 代理、配置 API、小工具 API
+├─ worker.js                   # Cloudflare Worker 代理、配置 API、站点元信息 API、小工具 API
 ├─ wrangler.toml               # Cloudflare Worker 部署配置
 ├─ package.json                # Wrangler 本地运行、检查和部署脚本
 ├─ scripts/
@@ -132,7 +132,7 @@ npm run worker:deploy
 后台分为六页：
 
 - 基础配置：站点标题、站点 Logo、标签页标题、favicon 图标源、访问统计、动态常用、背景、一言、特效、Live2D。
-- 分类站点：新增、删除、编辑分类和站点。
+- 分类站点：新增、删除、编辑分类和站点；填写外网地址后可自动匹配标题、描述和图标。
 - 小工具：创建、更新、删除 Worker 托管的小工具页面。
 - 导入导出：直接查看和替换配置 JSON。
 - 发布检查：上线前核对保存位置、Worker 状态、导航数据、手机端策略、小工具、备份和接口文档。
@@ -162,6 +162,7 @@ npm run worker:deploy
 - `POST /api/analytics/visit`：记录一次访问，并返回总访问、今日访问和点击统计。
 - `GET /api/analytics`：读取访问和点击统计。
 - `POST /api/analytics/click`：记录一次站点点击，用于动态生成“常用”分区。
+- `GET /api/admin/site-meta?url=`：管理员根据 URL 自动读取站点标题、描述和图标。
 
 字段限制：
 
@@ -191,6 +192,7 @@ npm run worker:deploy
 - 背景接口失败时是否回退到固定图片或默认背景。
 - favicon 失败时是否显示默认占位图。
 - 后台“站点和图标”里是否能切换 DuckDuckGo/Google 图标源。
+- 后台“分类站点”里填入 URL 后，“自动匹配”是否能回填标题、描述、图标和搜索关键词。
 - 后台未登录时是否禁用 Worker 远程操作。
 - 删除类操作是否出现确认框。
 - Worker 未配置 `ADMIN_PASSWORD` 或 `CONFIG_KV` 时是否返回清晰错误。

@@ -18,6 +18,7 @@ const LOGIN_API = '/api/admin/login';
 const ADMIN_CONFIG_API = '/api/admin/config';
 const ADMIN_LINKS_API = '/api/admin/links';
 const ADMIN_TOOLS_API = '/api/admin/tools';
+const SITE_META_API = '/api/admin/site-meta';
 const STATUS_API = '/api/status';
 
 let currentConfig = null;
@@ -533,7 +534,10 @@ function renderSectionDetail() {
     card.innerHTML = `
       <div class="site-card-head">
         <strong>站点 ${itemIndex + 1}</strong>
-        <button class="ghost-btn danger-btn" data-action="remove-site" type="button">删除</button>
+        <div class="site-card-actions">
+          <button class="ghost-btn" data-action="match-site" type="button" title="根据外网地址读取标题、描述和图标">自动匹配</button>
+          <button class="ghost-btn danger-btn" data-action="remove-site" type="button">删除</button>
+        </div>
       </div>
       <div class="site-card-grid">
         <label>
@@ -633,7 +637,7 @@ function updateSelectedSiteField(event) {
 }
 
 function handleSiteListClick(event) {
-  const button = event.target.closest('[data-action="remove-site"]');
+  const button = event.target.closest('[data-action]');
   if (!button) return;
 
   syncActiveSectionFromEditor();
@@ -641,6 +645,13 @@ function handleSiteListClick(event) {
   const section = currentLinks[selectedSectionIndex];
   const itemIndex = Number(card?.dataset.itemIndex);
   if (!section || !Number.isInteger(itemIndex)) return;
+
+  if (button.dataset.action === 'match-site') {
+    runButtonAction(button, '匹配中...', () => matchSiteMeta(card, section, itemIndex));
+    return;
+  }
+
+  if (button.dataset.action !== 'remove-site') return;
 
   const removedTitle = section.items[itemIndex]?.title || `站点 ${itemIndex + 1}`;
   if (!confirmDanger(`删除站点「${removedTitle}」？保存配置后前台导航会移除这个站点。`)) {
@@ -651,6 +662,58 @@ function handleSiteListClick(event) {
   renderLinksEditor();
   setSaveProgress(false);
   setStatus(`已删除站点：${removedTitle}。记得保存配置。`, 'warn');
+}
+
+async function matchSiteMeta(card, section, itemIndex) {
+  if (!adminToken) {
+    setStatus('请先登录后台。自动匹配需要 Worker 代为读取目标站点。', 'warn');
+    return;
+  }
+
+  const urlInput = card.querySelector('[data-field="url"]');
+  const url = urlInput?.value.trim();
+  if (!url) {
+    urlInput?.focus();
+    setStatus('请先填写站点外网地址。', 'warn');
+    return;
+  }
+
+  let res;
+  let data;
+  try {
+    res = await fetch(apiUrl(`${SITE_META_API}?url=${encodeURIComponent(url)}`), {
+      cache: 'no-cache',
+      headers: getAuthHeaders()
+    });
+    data = await readJsonResponse(res);
+  } catch (err) {
+    setStatus(`自动匹配失败：${err?.message || '网络请求失败'}`, 'error');
+    return;
+  }
+
+  if (!res.ok) {
+    setStatus(data.error || `自动匹配失败：${res.status}`, 'error');
+    return;
+  }
+
+  const item = section.items[itemIndex];
+  const fields = {
+    title: data.title || item.title,
+    icon: data.icon || data.fallbackIcon || item.icon || '',
+    desc: data.description || item.desc || '',
+    'data-desc': data.keywords || data.description || item['data-desc'] || ''
+  };
+
+  Object.entries(fields).forEach(([field, value]) => {
+    const input = card.querySelector(`[data-field="${field}"]`);
+    if (input && value) {
+      input.value = value;
+      item[field] = value;
+    }
+  });
+
+  setSaveProgress(false);
+  setStatus(`已匹配站点信息：${fields.title || url}。记得保存配置。`, 'ok');
 }
 
 function syncActiveSectionFromEditor() {

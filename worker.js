@@ -104,6 +104,7 @@ const MAX_TOOL_DESCRIPTION_LENGTH = 160;
 const MAX_TOOL_HTML_LENGTH = 250_000;
 const MAX_TOOL_COUNT = 50;
 const MAX_TOOLS_TOTAL_BYTES = 5 * 1024 * 1024;
+const SITE_META_MAX_HTML_LENGTH = 250_000;
 const TOOL_CONTENT_SECURITY_POLICY = [
   'sandbox allow-scripts allow-forms allow-popups allow-downloads',
   "default-src 'self' https: data: blob:",
@@ -191,6 +192,12 @@ async function routeApi(request, env) {
     return saveLinks(request, env);
   }
 
+  if (url.pathname === '/api/admin/site-meta' && request.method === 'GET') {
+    const auth = await requireAdmin(request, env);
+    if (auth) return auth;
+    return fetchSiteMeta(url);
+  }
+
   if (url.pathname === '/api/admin/tools' && request.method === 'GET') {
     const auth = await requireAdmin(request, env);
     if (auth) return auth;
@@ -229,6 +236,7 @@ function getApiDocs() {
       publicRead: 'GET /api/links',
       adminRead: 'GET /api/admin/links',
       adminSave: 'PUT /api/admin/links',
+      adminMatchSite: 'GET /api/admin/site-meta?url=https://example.com',
       schema: [
         {
           section: '小工具',
@@ -244,6 +252,19 @@ function getApiDocs() {
           ]
         }
       ]
+    },
+    siteMeta: {
+      adminRead: 'GET /api/admin/site-meta?url=https://example.com',
+      description: '管理员填入 URL 后，Worker 读取目标页面标题、描述和 favicon，用于后台站点表单自动回填',
+      response: {
+        ok: true,
+        url: 'https://example.com/',
+        title: 'Example Domain',
+        description: '站点简介',
+        icon: 'https://example.com/favicon.ico',
+        keywords: 'Example Domain 站点简介 example.com',
+        fallbackIcon: 'https://example.com/favicon.ico'
+      }
     },
     status: {
       publicRead: 'GET /api/status',
@@ -579,6 +600,68 @@ async function saveLinks(request, env) {
   return jsonResponse({ ok: true, links, updatedAt: new Date().toISOString() });
 }
 
+async function fetchSiteMeta(url) {
+  const target = normalizeTargetUrl(url.searchParams.get('url'));
+  if (!target) {
+    return jsonResponse({ error: 'url 无效或不支持内网地址' }, 400);
+  }
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 8000);
+
+  try {
+    const response = await fetch(target, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; SimpleNavPage/1.0; +https://workers.dev)',
+        Accept: 'text/html,application/xhtml+xml'
+      },
+      redirect: 'follow',
+      signal: controller.signal
+    });
+
+    if (!response.ok) {
+      return jsonResponse({ error: `目标站点返回 ${response.status}` }, 502);
+    }
+
+    const contentType = (response.headers.get('Content-Type') || '').toLowerCase();
+    if (contentType && !contentType.includes('text/html') && !contentType.includes('application/xhtml')) {
+      return jsonResponse({ error: '目标地址不是 HTML 页面' }, 400);
+    }
+
+    const html = (await response.text()).slice(0, SITE_META_MAX_HTML_LENGTH);
+    const finalUrl = response.url || target;
+    const final = new URL(finalUrl);
+    const origin = final.origin;
+    const hostname = final.hostname;
+    const rawTitle =
+      getMetaContent(html, 'property', 'og:title')
+      || getMetaContent(html, 'name', 'twitter:title')
+      || getTitle(html);
+    const title = cleanMetaText(rawTitle, 80);
+    const description = cleanMetaText(
+      getMetaContent(html, 'name', 'description')
+      || getMetaContent(html, 'property', 'og:description')
+      || getMetaContent(html, 'name', 'twitter:description')
+    );
+    const icon = resolveIconUrl(html, finalUrl);
+    const keywords = buildKeywords(title, description, hostname);
+
+    return jsonResponse({
+      ok: true,
+      url: finalUrl,
+      title: title || hostname,
+      description,
+      icon,
+      keywords,
+      fallbackIcon: `${origin}/favicon.ico`
+    });
+  } catch (err) {
+    return jsonResponse({ error: `元信息获取失败：${err.name === 'AbortError' ? '请求超时' : err.message}` }, 502);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function listPublicTools(env) {
   const result = await listStoredTools(env, false);
   return result instanceof Response ? result : jsonResponse({ tools: result.map(toPublicTool) });
@@ -793,6 +876,133 @@ function sanitizeLinkItem(item) {
     ...(item?.icon ? { icon: String(item.icon).trim() } : {}),
     ...(item?.intranet ? { intranet: String(item.intranet).trim() } : {})
   };
+}
+
+function normalizeTargetUrl(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+
+  try {
+    const url = new URL(/^https?:\/\//i.test(raw) ? raw : `https://${raw}`);
+    if (!['http:', 'https:'].includes(url.protocol)) return '';
+    if (isBlockedMetadataHost(url.hostname)) return '';
+    return url.toString();
+  } catch {
+    return '';
+  }
+}
+
+function isBlockedMetadataHost(hostname) {
+  const host = String(hostname || '').toLowerCase().replace(/^\[|\]$/g, '').replace(/\.$/, '');
+  if (!host) return true;
+  if (host === 'localhost' || host === '0.0.0.0' || host === '::1') return true;
+  if (host.includes(':')) return true;
+  if (host.endsWith('.localhost') || host.endsWith('.local')) return true;
+  return isPrivateIpv4(host);
+}
+
+function isPrivateIpv4(host) {
+  const parts = host.split('.').map(part => Number(part));
+  if (parts.length !== 4 || parts.some(part => !Number.isInteger(part) || part < 0 || part > 255)) {
+    return false;
+  }
+
+  const [a, b] = parts;
+  return (
+    a === 10
+    || a === 127
+    || (a === 169 && b === 254)
+    || (a === 172 && b >= 16 && b <= 31)
+    || (a === 192 && b === 168)
+  );
+}
+
+function getTitle(html) {
+  return decodeHtml(html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] || '');
+}
+
+function getMetaContent(html, attrName, attrValue) {
+  const tagPattern = /<meta\s+[^>]*>/gi;
+  const tags = html.match(tagPattern) || [];
+  const expected = attrValue.toLowerCase();
+
+  for (const tag of tags) {
+    const attrs = parseHtmlAttrs(tag);
+    if (String(attrs[attrName] || '').toLowerCase() === expected && attrs.content) {
+      return decodeHtml(attrs.content);
+    }
+  }
+
+  return '';
+}
+
+function resolveIconUrl(html, baseUrl) {
+  const tagPattern = /<link\s+[^>]*>/gi;
+  const tags = html.match(tagPattern) || [];
+  const candidates = [];
+
+  for (const tag of tags) {
+    const attrs = parseHtmlAttrs(tag);
+    const rel = String(attrs.rel || '').toLowerCase();
+    const href = attrs.href;
+    if (!href) continue;
+    if (rel.includes('apple-touch-icon')) candidates.push({ href, priority: 0 });
+    if (rel.includes('icon') && !rel.includes('mask-icon')) candidates.push({ href, priority: 1 });
+    if (rel.includes('mask-icon')) candidates.push({ href, priority: 2 });
+  }
+
+  candidates.sort((a, b) => a.priority - b.priority);
+  const href = candidates[0]?.href || '/favicon.ico';
+  try {
+    return new URL(href, baseUrl).toString();
+  } catch {
+    return '';
+  }
+}
+
+function parseHtmlAttrs(tag) {
+  const attrs = {};
+  const pattern = /([a-zA-Z_:][-a-zA-Z0-9_:.]*)\s*=\s*("([^"]*)"|'([^']*)'|([^\s"'=<>`]+))/g;
+  let match;
+
+  while ((match = pattern.exec(tag))) {
+    attrs[match[1].toLowerCase()] = match[3] ?? match[4] ?? match[5] ?? '';
+  }
+
+  return attrs;
+}
+
+function cleanMetaText(value, maxLength = 160) {
+  return decodeHtml(value)
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, maxLength);
+}
+
+function buildKeywords(title, description, hostname) {
+  return [title, description, hostname]
+    .filter(Boolean)
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 220);
+}
+
+function decodeHtml(value) {
+  return String(value || '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&#(\d+);/g, (_, code) => decodeCodePoint(Number(code)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, code) => decodeCodePoint(Number.parseInt(code, 16)))
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>');
+}
+
+function decodeCodePoint(code) {
+  return Number.isInteger(code) && code >= 0 && code <= 0x10ffff ? String.fromCodePoint(code) : '';
 }
 
 function sanitizeTool(tool) {

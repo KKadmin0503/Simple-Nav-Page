@@ -181,6 +181,36 @@ Content-Type: application/json
 - `icon`：可选，手动指定站点图标 URL；不填时前台会自动获取网站 favicon，并在失败时显示默认占位图
 - `intranet`：可选，内网地址；开启内外网切换时使用
 
+## 自动匹配站点信息
+
+后台“分类站点”页的“自动匹配”按钮会调用这个接口。它不依赖付费 AI 模型，而是由 Worker 读取目标页面的 `title`、`meta description`、OpenGraph/Twitter 元信息和 favicon，再回填站点表单。
+
+```http
+GET /api/admin/site-meta?url=https%3A%2F%2Fexample.com%2F
+Authorization: Bearer <token>
+```
+
+成功示例：
+
+```json
+{
+  "ok": true,
+  "url": "https://example.com/",
+  "title": "Example Domain",
+  "description": "站点简介",
+  "icon": "https://example.com/favicon.ico",
+  "keywords": "Example Domain 站点简介 example.com",
+  "fallbackIcon": "https://example.com/favicon.ico"
+}
+```
+
+说明：
+
+- `url` 只允许 `http` 和 `https`，会拒绝 `localhost`、内网 IP 和 `.local` 地址。
+- `title` 用于站点标题，`description` 用于前台卡片描述。
+- `icon` 优先使用页面声明的 `apple-touch-icon` 或 `icon`，失败时可使用 `fallbackIcon`。
+- `keywords` 可写入 `data-desc`，用于前台搜索。
+
 ## 字段限制
 
 Worker 会在保存前做基础校验，避免 AI 一次写入过大的页面或无效字段：
