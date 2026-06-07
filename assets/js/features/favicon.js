@@ -1,9 +1,9 @@
-import { getDomain, withProxy } from '../utils/url.js';
+import { getDomain, withProxy } from '../utils/url.js?v=20260607-icon-source';
 
 export function buildExternalFaviconUrl(domain, config) {
   const faviconConfig = config.favicon ?? {};
   const defaultIcon = getDefaultFavicon(config);
-  const provider = faviconConfig.provider ?? 'duckduckgo';
+  const provider = normalizeFaviconProvider(faviconConfig.provider);
 
   if (!domain) return defaultIcon;
   if (provider === 'google') {
@@ -72,6 +72,10 @@ export function applyBrowserFavicon(config) {
 function createEmojiFavicon(emoji) {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">${emoji}</text></svg>`;
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}
+
+function normalizeFaviconProvider(provider) {
+  return ['duckduckgo', 'google'].includes(provider) ? provider : 'duckduckgo';
 }
 
 function escapeSvg(value) {

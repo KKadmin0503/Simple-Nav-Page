@@ -1,6 +1,6 @@
 import { loadConfig } from './config-loader.js';
 import { applyBackground } from './features/background.js?v=20260607-adapt-a11y2';
-import { applyBrowserFavicon } from './features/favicon.js';
+import { applyBrowserFavicon } from './features/favicon.js?v=20260607-icon-source';
 import { initTabTitle } from './features/tab-title.js';
 import { initQuote } from './features/quote.js';
 import { createNetMode } from './features/net-mode.js';
@@ -8,7 +8,7 @@ import { initAmbientEffect } from './effects/ambient-manager.js?v=20260607-adapt
 import { initLive2D } from './features/live2d.js?v=20260607-adapt-a11y2';
 import { renderCards } from './nav-renderer.js?v=20260607-front-optimize';
 import { createSearch } from './search.js?v=20260607-front-optimize';
-import { getDomain } from './utils/url.js';
+import { getDomain } from './utils/url.js?v=20260607-icon-source';
 import { loadLinksData } from './links-loader.js';
 import {
   buildDynamicSections,

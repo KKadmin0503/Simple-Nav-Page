@@ -67,7 +67,7 @@
     <form id="adminForm" class="admin-grid">
       <div id="page-basic" class="admin-page active" role="tabpanel" aria-labelledby="tab-basic" data-admin-page="basic">
         <section class="panel">
-          <h2>站点基础</h2>
+          <h2>站点和图标</h2>
           <label>
             <span>首页标题</span>
             <input name="site.title" type="text">
@@ -91,6 +91,19 @@
           <label>
             <span>浏览器图标 emoji</span>
             <input name="favicon.emoji" type="text">
+          </label>
+          <label>
+            <span>站点图标源</span>
+            <select name="favicon.provider" aria-describedby="faviconProviderHint">
+              <option value="duckduckgo">DuckDuckGo</option>
+              <option value="google">Google</option>
+            </select>
+            <small class="field-hint" id="faviconProviderHint">用于导航卡片和搜索引擎图标；单个站点仍可手动填写 icon 覆盖。</small>
+          </label>
+          <label>
+            <span>图标代理地址</span>
+            <input name="favicon.proxy" type="url" placeholder="https://你的-worker.workers.dev" aria-describedby="faviconProxyHint">
+            <small class="field-hint" id="faviconProxyHint">留空时直接访问图标源；国内访问不稳定时可填 Worker 代理根地址。</small>
           </label>
         </section>
 
@@ -345,6 +358,6 @@
     </form>
   </main>
 
-  <script type="module" src="assets/js/admin/admin-app.js?v=20260607-api-base"></script>
+  <script type="module" src="assets/js/admin/admin-app.js?v=20260607-icon-source"></script>
 </body>
 </html>

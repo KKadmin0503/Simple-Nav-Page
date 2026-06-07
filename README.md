@@ -66,11 +66,13 @@
 * `url`：网站地址
   
 * `intranet`（可选）：若有内外网切换需求，则在"url" 下方加一行，【"intranet": "输入你的内网网址",】
-  
- 编辑 `main.js`：（可选）
- 
-* 根据您的网站图标适配情况，可切换图标源：'google' 或 'duckduckgo'
-* const FAVICON_PROVIDER = 'duckduckgo';或const FAVICON_PROVIDER = 'google';
+
+图标源不需要再改 `main.js`。进入 `admin.html` 后台，在“基础配置 -> 站点和图标”里可以切换：
+
+* `DuckDuckGo`：默认图标源
+* `Google`：Google favicon 服务
+
+如果图标访问不稳定，可以填写 Worker 代理地址。
 
 ---
 

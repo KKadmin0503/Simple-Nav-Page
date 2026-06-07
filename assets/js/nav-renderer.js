@@ -1,9 +1,9 @@
-import { getDomain } from './utils/url.js';
+import { getDomain } from './utils/url.js?v=20260607-icon-source';
 import {
   directFaviconUrl,
   getDefaultFavicon,
   siteFavicon
-} from './features/favicon.js';
+} from './features/favicon.js?v=20260607-icon-source';
 
 export function renderCards(sections, { config, getCardUrl, onCardClick }) {
   const main = document.getElementById('main-content');

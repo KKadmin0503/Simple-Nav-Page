@@ -2,7 +2,7 @@ import {
   directFaviconUrl,
   engineFavicon,
   getDefaultFavicon
-} from './features/favicon.js';
+} from './features/favicon.js?v=20260607-icon-source';
 
 export function createSearch(config) {
   const categories = config.search?.categories ?? [];

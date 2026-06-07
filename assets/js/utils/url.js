@@ -7,7 +7,7 @@ export function getDomain(url) {
 }
 
 export function withProxy(originUrl, proxy = '') {
-  if (!proxy) return originUrl;
-  return `${proxy}/${originUrl.replace(/^https?:\/\//, '')}`;
+  const proxyBase = String(proxy || '').trim().replace(/\/+$/, '');
+  if (!proxyBase) return originUrl;
+  return `${proxyBase}/${originUrl.replace(/^https?:\/\//, '')}`;
 }
-

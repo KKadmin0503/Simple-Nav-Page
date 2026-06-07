@@ -943,6 +943,7 @@ function renderPublishChecklist() {
 
   const stats = getLinkStats();
   const backgroundCheck = getBackgroundCheck();
+  const faviconCheck = getFaviconCheck();
   const workerCheck = getWorkerStatusCheck();
   const analyticsCheck = getAnalyticsCheck();
   const mobileLive2dEnabled = Boolean(currentConfig.live2d?.mobileEnabled);
@@ -966,6 +967,12 @@ function renderPublishChecklist() {
       title: '分类和站点',
       value: `${stats.sectionCount} 个分类 / ${stats.siteCount} 个站点`,
       detail: getLinksCheckDetail(stats)
+    },
+    {
+      state: faviconCheck.state,
+      title: '站点图标',
+      value: faviconCheck.value,
+      detail: faviconCheck.detail
     },
     {
       state: backgroundCheck.state,
@@ -1115,6 +1122,21 @@ function getBackgroundCheck() {
     state: missing.length ? 'warn' : 'ok',
     value: `${getBackgroundModeLabel(mode)} / ${quote.enabled ? '一言开启' : '一言关闭'}`,
     detail: missing.length ? `缺少：${missing.join('、')}。` : '背景来源和一言配置已有可用值。'
+  };
+}
+
+function getFaviconCheck() {
+  const favicon = currentConfig.favicon ?? {};
+  const provider = ['duckduckgo', 'google'].includes(favicon.provider) ? favicon.provider : 'duckduckgo';
+  const providerLabel = provider === 'google' ? 'Google' : 'DuckDuckGo';
+  const proxy = String(favicon.proxy || '').trim();
+
+  return {
+    state: 'ok',
+    value: `${providerLabel}${proxy ? ' / Worker 代理' : ' / 直连'}`,
+    detail: proxy
+      ? '图标会通过代理地址加载，适合国内访问不稳定的场景。'
+      : '图标会直接从源站加载；如果大量图标失败，可以填写 Worker 代理地址。'
   };
 }
 
