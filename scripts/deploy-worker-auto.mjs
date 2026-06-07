@@ -1,8 +1,9 @@
-import { mkdirSync, writeFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { dirname, relative, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 
 const workerName = 'simple-nav-page';
+const workerEntry = resolve('worker.js');
 const bindingName = 'CONFIG_KV';
 const namespaceTitle = process.env.CONFIG_KV_NAMESPACE || `${workerName}-config`;
 const generatedConfigPath = resolve('.wrangler/generated-wrangler.toml');
@@ -11,6 +12,10 @@ main();
 
 function main() {
   console.log(`[deploy] Preparing Cloudflare Worker "${workerName}".`);
+  if (!existsSync(workerEntry)) {
+    throw new Error(`Worker entry file was not found: ${workerEntry}`);
+  }
+
   const namespaceId = process.env.CONFIG_KV_ID || process.env.CONFIG_KV_NAMESPACE_ID || ensureKvNamespace(namespaceTitle);
 
   writeGeneratedConfig(namespaceId);
@@ -53,8 +58,9 @@ function findNamespace(title) {
 
 function writeGeneratedConfig(namespaceId) {
   mkdirSync(dirname(generatedConfigPath), { recursive: true });
+  const mainPath = toTomlPath(relative(dirname(generatedConfigPath), workerEntry));
   writeFileSync(generatedConfigPath, `name = "${workerName}"
-main = "worker.js"
+main = "${mainPath}"
 compatibility_date = "2026-06-07"
 workers_dev = true
 
@@ -64,6 +70,10 @@ id = "${namespaceId}"
 preview_id = "${namespaceId}"
 `, 'utf8');
   console.log(`[deploy] Generated ${generatedConfigPath}.`);
+}
+
+function toTomlPath(value) {
+  return value.replace(/\\/g, '/');
 }
 
 function parseNamespaces(output) {
