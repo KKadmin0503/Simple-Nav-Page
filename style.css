@@ -828,6 +828,82 @@ h1::after {
 
 .net-toggle-btn.intranet-active:hover { background: rgba(210, 90, 20, 0.85); }
 
+/* ===== 前台公告 ===== */
+.announcement-dialog {
+  width: min(440px, calc(100vw - 32px));
+  padding: 0;
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: var(--radius-card);
+  color: var(--text-main);
+  background: rgba(8, 13, 18, 0.92);
+  box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.announcement-dialog::backdrop {
+  background: rgba(0,0,0,0.56);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+
+.announcement-panel {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+}
+
+.announcement-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.announcement-mark {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #07100b;
+  background: var(--primary);
+  font-weight: 800;
+  font-family: Georgia, serif;
+}
+
+.announcement-head h2 {
+  margin: 0;
+  color: #f5fff6;
+  font-size: 1.08rem;
+}
+
+.announcement-content {
+  color: rgba(255,255,255,0.78);
+  font-size: 0.92rem;
+  line-height: 1.7;
+}
+
+.announcement-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.announcement-confirm {
+  min-width: 112px;
+  min-height: 38px;
+  border: 1px solid rgba(99,193,116,0.46);
+  border-radius: var(--radius-card);
+  color: #f5fff6;
+  background: rgba(99,193,116,0.24);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.announcement-confirm:hover {
+  background: rgba(99,193,116,0.34);
+}
+
 /* ===== Live2D 看板娘 ===== */
 #waifu {
   z-index: 5;

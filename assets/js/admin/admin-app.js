@@ -73,6 +73,9 @@ const publishChecklist = document.getElementById('publishChecklist');
 const refreshChecklistBtn = document.getElementById('refreshChecklistBtn');
 const copyBackupBtn = document.getElementById('copyBackupBtn');
 const checkWorkerBtn = document.getElementById('checkWorkerBtn');
+const adminHeader = document.querySelector('.admin-header');
+const setupPanel = document.getElementById('setupPanel');
+const adminTabs = document.querySelector('.admin-tabs');
 
 initAdmin();
 
@@ -86,13 +89,11 @@ async function initAdmin() {
     bindEvents();
     updateAuthUi();
     if (adminToken) {
-      await loadRemoteConfig();
-      await loadRemoteLinks();
-      await loadTools();
+      await enterWorkspace();
     } else {
       renderToolsList();
       renderToolUsage();
-      setStatus('配置已加载。未登录时保存为本地预览配置。', 'warn');
+      setStatus('请输入后台密钥。', 'warn');
     }
     renderPublishChecklist();
   } catch (err) {
@@ -119,7 +120,8 @@ function bindEvents() {
     sessionStorage.removeItem(ADMIN_TOKEN_KEY);
     updateAuthUi();
     setSaveProgress(false);
-    setStatus('已退出登录。后续保存会写入本地预览配置。', 'warn');
+    setStatus('已退出后台。', 'warn');
+    passwordInput?.focus();
   });
 
   form.addEventListener('input', event => {
@@ -314,15 +316,21 @@ async function login() {
     passwordInput.value = '';
     updateAuthUi();
     setSaveProgress(false);
-    await loadRemoteConfig();
-    await loadRemoteLinks();
-    await loadTools();
-    setStatus('已登录后台。保存配置会写入 Worker/KV。', 'ok');
+    await enterWorkspace();
+    setStatus('已进入后台。保存配置会写入 Worker/KV。', 'ok');
   } catch (err) {
     setStatus(`登录失败：${err.message}`, 'error');
   } finally {
     loginBtn.disabled = false;
   }
+}
+
+async function enterWorkspace() {
+  await loadRemoteConfig();
+  await loadRemoteLinks();
+  await loadTools();
+  updateJsonEditor();
+  renderPublishChecklist();
 }
 
 async function loadRemoteConfig() {
@@ -1058,7 +1066,13 @@ function updateJsonEditor() {
 }
 
 function updateAuthUi() {
-  loginPanel.hidden = Boolean(adminToken);
+  const unlocked = Boolean(adminToken);
+  document.body.classList.toggle('admin-locked', !unlocked);
+  loginPanel.hidden = unlocked;
+  adminHeader.hidden = !unlocked;
+  setupPanel.hidden = !unlocked;
+  adminTabs.hidden = !unlocked;
+  form.hidden = !unlocked;
   logoutBtn.hidden = !adminToken;
   [reloadToolsBtn, saveToolBtn, deleteToolBtn].forEach(button => {
     if (button) button.disabled = !adminToken;

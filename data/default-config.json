@@ -57,6 +57,13 @@
     "timeout": 15000,
     "fallback": "沉舟侧畔千帆过，病树前头万木春。"
   },
+  "announcement": {
+    "enabled": true,
+    "title": "站点说明",
+    "content": "欢迎使用澄砚导航。这里会聚合常用网站、搜索入口、AI 工具和在线小工具，部分外部服务可能会因网络环境出现加载延迟。",
+    "buttonText": "我知道了",
+    "showEveryVisit": false
+  },
   "background": {
     "mode": "image-api",
     "desktopImageApi": "https://imgapi.cn/api.php?fl=dongman&gs=images&t=",

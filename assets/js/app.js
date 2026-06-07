@@ -3,6 +3,7 @@ import { applyBackground } from './features/background.js?v=20260607-adapt-a11y2
 import { applyBrowserFavicon } from './features/favicon.js?v=20260607-inkmark-logo';
 import { initTabTitle } from './features/tab-title.js';
 import { initQuote } from './features/quote.js';
+import { initAnnouncement } from './features/announcement.js?v=20260607-gate-announcement';
 import { createNetMode } from './features/net-mode.js';
 import { initAmbientEffect } from './effects/ambient-manager.js?v=20260607-adapt-a11y2';
 import { initLive2D } from './features/live2d.js?v=20260607-adapt-a11y2';
@@ -26,6 +27,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     applyBackground(config);
     initAmbientEffect(config);
     initQuote(config);
+    initAnnouncement(config);
     const analytics = await initAnalytics(config);
     renderVisitStats(analytics, config);
 

@@ -6,14 +6,14 @@
   <meta name="simple-nav-api-base" content="">
   <meta name="robots" content="noindex,nofollow,noarchive">
   <title>导航后台</title>
-  <link rel="stylesheet" href="assets/css/admin.css?v=20260607-publish-check">
+  <link rel="stylesheet" href="assets/css/admin.css?v=20260607-gate-announcement">
 </head>
 <body>
   <main class="admin-shell">
-    <header class="admin-header">
+    <header class="admin-header" hidden>
       <div>
         <h1>导航后台</h1>
-        <p>登录后可保存到 Worker/KV；本地开发时会自动保留浏览器预览配置。</p>
+        <p>登录后可保存到 Worker/KV，修改会同步到线上前台。</p>
       </div>
       <div class="header-actions">
         <a class="ghost-btn" href="index.html" target="_blank" rel="noopener noreferrer">打开前台</a>
@@ -25,7 +25,7 @@
 
     <section class="status-bar" id="statusBar" role="status" aria-live="polite">正在加载配置...</section>
 
-    <section class="setup-panel" id="setupPanel" aria-label="后台当前状态">
+    <section class="setup-panel" id="setupPanel" aria-label="后台当前状态" hidden>
       <div class="setup-copy">
         <span class="setup-label">当前模式</span>
         <strong id="setupModeTitle">本地预览</strong>
@@ -43,20 +43,29 @@
       </div>
     </section>
 
-    <section class="panel login-panel" id="loginPanel">
-      <h2>管理员登录</h2>
+    <section class="panel login-panel admin-gate" id="loginPanel">
+      <div class="gate-brand">
+        <img src="assets/brand/chengyan-inkmark-logo.svg" alt="">
+        <div>
+          <span>澄砚导航后台</span>
+          <h1>输入后台密钥</h1>
+          <p>验证通过后进入配置工作台。</p>
+        </div>
+      </div>
       <div class="login-row">
         <label>
-          <span>管理员密码</span>
-          <input id="passwordInput" type="password" autocomplete="current-password" placeholder="输入 Worker 环境变量 ADMIN_PASSWORD" aria-describedby="passwordHint">
-          <small class="field-hint" id="passwordHint">未部署 Worker 时可以不登录，保存只用于当前浏览器预览。</small>
+          <span>后台密钥</span>
+          <input id="passwordInput" type="password" autocomplete="current-password" placeholder="输入 ADMIN_PASSWORD" aria-describedby="passwordHint">
+          <small class="field-hint" id="passwordHint">密钥来自 Cloudflare Worker 环境变量 ADMIN_PASSWORD。</small>
         </label>
-        <button id="loginBtn" class="primary-btn" type="button">登录</button>
+        <button id="loginBtn" class="primary-btn" type="button">进入后台</button>
       </div>
-      <p>未部署 Worker 或未绑定 KV 时，后台仍可本地预览，但不会成为线上公共配置。</p>
+      <div class="gate-actions">
+        <a class="ghost-btn" href="index.html" target="_blank" rel="noopener noreferrer">打开前台</a>
+      </div>
     </section>
 
-    <nav class="admin-tabs" role="tablist" aria-label="后台分页">
+    <nav class="admin-tabs" role="tablist" aria-label="后台分页" hidden>
       <button id="tab-basic" class="admin-tab active" role="tab" aria-selected="true" aria-controls="page-basic" type="button" data-admin-tab="basic">基础配置</button>
       <button id="tab-links" class="admin-tab" role="tab" aria-selected="false" aria-controls="page-links" type="button" data-admin-tab="links">分类站点</button>
       <button id="tab-tools" class="admin-tab" role="tab" aria-selected="false" aria-controls="page-tools" type="button" data-admin-tab="tools">小工具</button>
@@ -65,7 +74,7 @@
       <button id="tab-preview" class="admin-tab" role="tab" aria-selected="false" aria-controls="page-preview" type="button" data-admin-tab="preview">前台预览</button>
     </nav>
 
-    <form id="adminForm" class="admin-grid">
+    <form id="adminForm" class="admin-grid" hidden>
       <div id="page-basic" class="admin-page active" role="tabpanel" aria-labelledby="tab-basic" data-admin-page="basic">
         <section class="panel">
           <h2>站点和图标</h2>
@@ -191,6 +200,30 @@
           <label>
             <span>超时时间 ms</span>
             <input name="quote.timeout" type="number" min="1000" step="500">
+          </label>
+        </section>
+
+        <section class="panel">
+          <h2>前台公告</h2>
+          <label class="switch-row">
+            <span>启用弹窗公告</span>
+            <input name="announcement.enabled" type="checkbox">
+          </label>
+          <label>
+            <span>公告标题</span>
+            <input name="announcement.title" type="text" placeholder="例如 站点说明">
+          </label>
+          <label>
+            <span>公告内容</span>
+            <textarea name="announcement.content" class="compact-textarea" placeholder="支持普通文本，换行会保留。"></textarea>
+          </label>
+          <label>
+            <span>确认按钮文案</span>
+            <input name="announcement.buttonText" type="text" placeholder="我知道了">
+          </label>
+          <label class="switch-row">
+            <span>每次打开都显示</span>
+            <input name="announcement.showEveryVisit" type="checkbox">
           </label>
         </section>
 
@@ -438,6 +471,6 @@
     </form>
   </main>
 
-  <script type="module" src="assets/js/admin/admin-app.js?v=20260607-seo-brand"></script>
+  <script type="module" src="assets/js/admin/admin-app.js?v=20260607-gate-announcement"></script>
 </body>
 </html>
