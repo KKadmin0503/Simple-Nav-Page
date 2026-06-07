@@ -329,6 +329,77 @@ textarea {
   gap: 12px;
 }
 
+.tool-usage-panel {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 16px;
+  padding: 14px;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: var(--nav-radius-sm);
+  background: var(--nav-color-surface-soft);
+}
+
+.tool-usage-head,
+.usage-meter-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.tool-usage-head div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.tool-usage-head strong,
+.usage-meter-head strong {
+  color: var(--nav-color-ink-strong);
+}
+
+.tool-usage-head span,
+.usage-meter small {
+  color: var(--nav-color-ink-muted);
+  font-size: 13px;
+}
+
+#toolLargestValue {
+  flex: 0 0 auto;
+  max-width: 45%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.usage-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.usage-meter {
+  display: grid;
+  gap: 8px;
+}
+
+.usage-track {
+  width: 100%;
+  height: 8px;
+  overflow: hidden;
+  border-radius: var(--nav-radius-pill);
+  background: rgba(255,255,255,0.12);
+}
+
+.usage-track span {
+  display: block;
+  width: 0%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #35d08f, #2f7de1);
+  transition: width 180ms ease;
+}
+
 .links-editor {
   display: grid;
   grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
@@ -748,6 +819,20 @@ textarea {
   .site-card-head {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .tool-usage-head,
+  .usage-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .tool-usage-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  #toolLargestValue {
+    max-width: 100%;
   }
 
   .preview-frame {

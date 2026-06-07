@@ -102,6 +102,8 @@ const MAX_TOOL_SLUG_LENGTH = 64;
 const MAX_TOOL_TITLE_LENGTH = 80;
 const MAX_TOOL_DESCRIPTION_LENGTH = 160;
 const MAX_TOOL_HTML_LENGTH = 250_000;
+const MAX_TOOL_COUNT = 50;
+const MAX_TOOLS_TOTAL_BYTES = 5 * 1024 * 1024;
 const TOOL_CONTENT_SECURITY_POLICY = [
   'sandbox allow-scripts allow-forms allow-popups allow-downloads',
   "default-src 'self' https: data: blob:",
@@ -270,7 +272,9 @@ function getApiDocs() {
         slug: `1-${MAX_TOOL_SLUG_LENGTH} chars, lowercase letters/numbers/dash after normalization`,
         title: `1-${MAX_TOOL_TITLE_LENGTH} chars`,
         description: `0-${MAX_TOOL_DESCRIPTION_LENGTH} chars`,
-        html: `1-${MAX_TOOL_HTML_LENGTH} chars`
+        html: `1-${MAX_TOOL_HTML_LENGTH} chars`,
+        maxTools: MAX_TOOL_COUNT,
+        maxTotalBytes: MAX_TOOLS_TOTAL_BYTES
       }
     },
     errors: {
@@ -358,13 +362,17 @@ async function getWorkerStatus(env) {
   }
 
   try {
-    const tools = await listStoredTools(env, false);
+    const tools = await listStoredTools(env, true);
     if (tools instanceof Response) {
       status.checks.tools.message = '小工具读取失败';
     } else {
+      const usage = getToolUsage(tools);
       status.checks.tools.count = tools.length;
+      status.checks.tools.usage = usage;
       status.checks.tools.ok = true;
-      status.checks.tools.message = tools.length ? '小工具列表可读取' : 'KV 中暂无小工具';
+      status.checks.tools.message = tools.length
+        ? `小工具列表可读取，已用 ${usage.totalBytes} / ${usage.maxTotalBytes} bytes`
+        : 'KV 中暂无小工具';
     }
   } catch (err) {
     status.checks.tools.message = `小工具读取失败：${err.message}`;
@@ -578,7 +586,10 @@ async function listPublicTools(env) {
 
 async function listTools(env) {
   const result = await listStoredTools(env, true);
-  return result instanceof Response ? result : jsonResponse({ tools: result });
+  return result instanceof Response ? result : jsonResponse({
+    tools: result,
+    usage: getToolUsage(result)
+  });
 }
 
 async function saveTool(request, env) {
@@ -600,6 +611,16 @@ async function saveTool(request, env) {
     return jsonResponse({ error: validationError }, 400);
   }
 
+  const existingTools = await listStoredTools(env, true);
+  if (existingTools instanceof Response) {
+    return existingTools;
+  }
+
+  const quotaError = validateToolQuota(existingTools, tool);
+  if (quotaError) {
+    return jsonResponse({ error: quotaError }, 400);
+  }
+
   await store.put(`${TOOL_PREFIX}${tool.slug}`, JSON.stringify(tool));
   let links = await store.get(LINKS_KEY, 'json');
 
@@ -611,6 +632,7 @@ async function saveTool(request, env) {
   return jsonResponse({
     ok: true,
     tool: toPublicTool(tool),
+    usage: getToolUsage(upsertTool(existingTools, tool)),
     links: Array.isArray(links) ? links : undefined,
     url: `/tools/${tool.slug}/`
   });
@@ -805,6 +827,70 @@ function validateTool(tool) {
   }
 
   return '';
+}
+
+function validateToolQuota(existingTools, nextTool) {
+  const nextTools = upsertTool(existingTools, nextTool);
+  const usage = getToolUsage(nextTools);
+
+  if (usage.toolCount > MAX_TOOL_COUNT) {
+    return `小工具数量不能超过 ${MAX_TOOL_COUNT} 个`;
+  }
+
+  if (usage.totalBytes > MAX_TOOLS_TOTAL_BYTES) {
+    return `小工具总占用不能超过 ${formatBytes(MAX_TOOLS_TOTAL_BYTES)}，当前保存后将达到 ${formatBytes(usage.totalBytes)}`;
+  }
+
+  return '';
+}
+
+function upsertTool(tools, tool) {
+  const nextTools = Array.isArray(tools) ? [...tools] : [];
+  const index = nextTools.findIndex(item => item.slug === tool.slug);
+  if (index >= 0) {
+    nextTools[index] = tool;
+  } else {
+    nextTools.push(tool);
+  }
+  return nextTools;
+}
+
+function getToolUsage(tools) {
+  const items = Array.isArray(tools) ? tools : [];
+  const totalBytes = items.reduce((sum, tool) => sum + byteLength(JSON.stringify(tool)), 0);
+  const largestTool = items.reduce((largest, tool) => {
+    const bytes = byteLength(JSON.stringify(tool));
+    return bytes > largest.bytes
+      ? { slug: tool.slug || '', title: tool.title || tool.slug || '', bytes }
+      : largest;
+  }, { slug: '', title: '', bytes: 0 });
+
+  return {
+    toolCount: items.length,
+    maxTools: MAX_TOOL_COUNT,
+    totalBytes,
+    maxTotalBytes: MAX_TOOLS_TOTAL_BYTES,
+    maxToolHtmlLength: MAX_TOOL_HTML_LENGTH,
+    countPercent: percent(items.length, MAX_TOOL_COUNT),
+    bytesPercent: percent(totalBytes, MAX_TOOLS_TOTAL_BYTES),
+    largestTool
+  };
+}
+
+function byteLength(value) {
+  return new TextEncoder().encode(String(value || '')).length;
+}
+
+function percent(value, max) {
+  if (!max) return 0;
+  return Math.min(Math.round((Number(value) / Number(max)) * 100), 100);
+}
+
+function formatBytes(bytes) {
+  const value = Number(bytes) || 0;
+  if (value >= 1024 * 1024) return `${(value / 1024 / 1024).toFixed(2)} MiB`;
+  if (value >= 1024) return `${(value / 1024).toFixed(1)} KiB`;
+  return `${value} B`;
 }
 
 function toPublicTool(tool) {

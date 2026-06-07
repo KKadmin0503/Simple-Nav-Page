@@ -189,7 +189,25 @@ Worker 会在保存前做基础校验，避免 AI 一次写入过大的页面或
 - `title`：不能为空，最长 80 个字符
 - `description`：最长 160 个字符
 - `html`：不能为空，最长 250000 个字符
+- 小工具最多 50 个
+- 小工具总占用最多 5 MiB
 - `links`：`PUT /api/admin/links` 的请求体必须是分类数组，不能传单个对象
+
+`GET /api/admin/tools` 和 `PUT /api/admin/tools` 会返回 `usage`，可用于显示资源占用：
+
+```json
+{
+  "usage": {
+    "toolCount": 3,
+    "maxTools": 50,
+    "totalBytes": 120000,
+    "maxTotalBytes": 5242880,
+    "maxToolHtmlLength": 250000,
+    "countPercent": 6,
+    "bytesPercent": 2
+  }
+}
+```
 
 ## 返回格式
 
@@ -204,6 +222,15 @@ Worker 会在保存前做基础校验，避免 AI 一次写入过大的页面或
     "description": "计算 BMI 和健康区间",
     "url": "/tools/bmi-calculator/",
     "updatedAt": "2026-06-07T00:00:00.000Z"
+  },
+  "usage": {
+    "toolCount": 1,
+    "maxTools": 50,
+    "totalBytes": 2048,
+    "maxTotalBytes": 5242880,
+    "maxToolHtmlLength": 250000,
+    "countPercent": 2,
+    "bytesPercent": 1
   },
   "url": "/tools/bmi-calculator/"
 }

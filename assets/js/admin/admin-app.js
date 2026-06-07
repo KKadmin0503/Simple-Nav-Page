@@ -24,6 +24,7 @@ let currentConfig = null;
 let currentLinks = [];
 let selectedSectionIndex = 0;
 let tools = [];
+let toolUsage = createEmptyToolUsage();
 let selectedToolSlug = '';
 let adminToken = sessionStorage.getItem(ADMIN_TOKEN_KEY) || '';
 let saveProgressSaved = false;
@@ -40,6 +41,14 @@ const sectionList = document.getElementById('sectionList');
 const sectionNameInput = document.getElementById('sectionNameInput');
 const siteList = document.getElementById('siteList');
 const toolsList = document.getElementById('toolsList');
+const toolUsageSummary = document.getElementById('toolUsageSummary');
+const toolLargestValue = document.getElementById('toolLargestValue');
+const toolCountValue = document.getElementById('toolCountValue');
+const toolCountBar = document.getElementById('toolCountBar');
+const toolCountPercent = document.getElementById('toolCountPercent');
+const toolBytesValue = document.getElementById('toolBytesValue');
+const toolBytesBar = document.getElementById('toolBytesBar');
+const toolBytesPercent = document.getElementById('toolBytesPercent');
 const loginPanel = document.getElementById('loginPanel');
 const loginBtn = document.getElementById('loginBtn');
 const logoutBtn = document.getElementById('logoutBtn');
@@ -81,6 +90,7 @@ async function initAdmin() {
       await loadTools();
     } else {
       renderToolsList();
+      renderToolUsage();
       setStatus('配置已加载。未登录时保存为本地预览配置。', 'warn');
     }
     renderPublishChecklist();
@@ -215,6 +225,7 @@ function bindEvents() {
   reloadToolsBtn.addEventListener('click', () => runButtonAction(reloadToolsBtn, '刷新中...', loadTools));
   saveToolBtn.addEventListener('click', () => runButtonAction(saveToolBtn, '保存中...', saveTool));
   deleteToolBtn.addEventListener('click', () => runButtonAction(deleteToolBtn, '删除中...', deleteTool));
+  toolHtmlInput.addEventListener('input', renderToolDraftSize);
   refreshChecklistBtn?.addEventListener('click', () => {
     syncConfigFromForm();
     syncActiveSectionFromEditor();
@@ -659,7 +670,9 @@ function syncActiveSectionFromEditor() {
 async function loadTools() {
   if (!adminToken) {
     tools = [];
+    toolUsage = createEmptyToolUsage();
     renderToolsList();
+    renderToolUsage();
     return;
   }
 
@@ -675,7 +688,9 @@ async function loadTools() {
   }
 
   tools = Array.isArray(data.tools) ? data.tools : [];
+  toolUsage = normalizeToolUsage(data.usage, tools);
   renderToolsList();
+  renderToolUsage();
   requestPublishChecklistUpdate();
 }
 
@@ -714,6 +729,7 @@ async function selectTool(tool) {
   document.getElementById('toolHtml').value = tool.html || createDefaultToolHtml();
   document.getElementById('toolAddToNav').checked = true;
   updateToolLink();
+  renderToolDraftSize();
   renderToolsList();
 }
 
@@ -756,6 +772,10 @@ async function saveTool() {
   }
 
   selectedToolSlug = data.tool?.slug || tool.slug;
+  if (data.usage) {
+    toolUsage = normalizeToolUsage(data.usage, tools);
+    renderToolUsage();
+  }
   await loadTools();
   updateToolLink();
   setSaveProgress(true);
@@ -821,6 +841,103 @@ function clearToolValidation() {
   [toolSlugInput, toolTitleInput, toolHtmlInput].forEach(input => {
     input?.removeAttribute('aria-invalid');
   });
+}
+
+function renderToolUsage() {
+  const usage = normalizeToolUsage(toolUsage, tools);
+  const countPercent = clampPercent(usage.countPercent);
+  const bytesPercent = clampPercent(usage.bytesPercent);
+
+  if (toolUsageSummary) {
+    toolUsageSummary.textContent = adminToken
+      ? `${usage.toolCount} 个小工具，已用 ${formatBytes(usage.totalBytes)} / ${formatBytes(usage.maxTotalBytes)}`
+      : '登录后读取 Worker 小工具配额。';
+  }
+  if (toolLargestValue) {
+    const largest = usage.largestTool;
+    toolLargestValue.textContent = largest?.bytes
+      ? `最大：${largest.title || largest.slug} ${formatBytes(largest.bytes)}`
+      : '最大工具 --';
+  }
+  if (toolCountValue) toolCountValue.textContent = `${usage.toolCount} / ${usage.maxTools}`;
+  if (toolCountBar) toolCountBar.style.width = `${countPercent}%`;
+  if (toolCountPercent) toolCountPercent.textContent = `${countPercent}%`;
+  if (toolBytesValue) toolBytesValue.textContent = `${formatBytes(usage.totalBytes)} / ${formatBytes(usage.maxTotalBytes)}`;
+  if (toolBytesBar) toolBytesBar.style.width = `${bytesPercent}%`;
+  if (toolBytesPercent) toolBytesPercent.textContent = `${bytesPercent}%`;
+
+  renderToolDraftSize();
+}
+
+function renderToolDraftSize() {
+  const hint = document.getElementById('toolHtmlHint');
+  if (!hint || !toolHtmlInput) return;
+  const size = byteLength(toolHtmlInput.value);
+  const max = Number(toolUsage?.maxToolHtmlLength) || 250000;
+  hint.textContent = `工具页会被 sandbox 隔离；当前 HTML ${formatBytes(size)} / ${formatBytes(max)}。`;
+}
+
+function normalizeToolUsage(usage, sourceTools = []) {
+  const maxTools = Number(usage?.maxTools) || 50;
+  const maxTotalBytes = Number(usage?.maxTotalBytes) || 5 * 1024 * 1024;
+  const maxToolHtmlLength = Number(usage?.maxToolHtmlLength) || 250000;
+  const toolCount = Number(usage?.toolCount);
+  const totalBytes = Number(usage?.totalBytes);
+
+  return {
+    toolCount: Number.isFinite(toolCount) ? toolCount : sourceTools.length,
+    maxTools,
+    totalBytes: Number.isFinite(totalBytes) ? totalBytes : estimateToolsBytes(sourceTools),
+    maxTotalBytes,
+    maxToolHtmlLength,
+    countPercent: Number.isFinite(Number(usage?.countPercent))
+      ? Number(usage.countPercent)
+      : percent(sourceTools.length, maxTools),
+    bytesPercent: Number.isFinite(Number(usage?.bytesPercent))
+      ? Number(usage.bytesPercent)
+      : percent(estimateToolsBytes(sourceTools), maxTotalBytes),
+    largestTool: usage?.largestTool || getLargestLocalTool(sourceTools)
+  };
+}
+
+function createEmptyToolUsage() {
+  return normalizeToolUsage(null, []);
+}
+
+function estimateToolsBytes(sourceTools) {
+  return Array.isArray(sourceTools)
+    ? sourceTools.reduce((sum, tool) => sum + byteLength(JSON.stringify(tool)), 0)
+    : 0;
+}
+
+function getLargestLocalTool(sourceTools) {
+  if (!Array.isArray(sourceTools)) return { slug: '', title: '', bytes: 0 };
+  return sourceTools.reduce((largest, tool) => {
+    const bytes = byteLength(JSON.stringify(tool));
+    return bytes > largest.bytes
+      ? { slug: tool.slug || '', title: tool.title || tool.slug || '', bytes }
+      : largest;
+  }, { slug: '', title: '', bytes: 0 });
+}
+
+function byteLength(value) {
+  return new TextEncoder().encode(String(value || '')).length;
+}
+
+function percent(value, max) {
+  if (!max) return 0;
+  return Math.min(Math.round((Number(value) / Number(max)) * 100), 100);
+}
+
+function clampPercent(value) {
+  return Math.max(0, Math.min(Number(value) || 0, 100));
+}
+
+function formatBytes(bytes) {
+  const value = Number(bytes) || 0;
+  if (value >= 1024 * 1024) return `${(value / 1024 / 1024).toFixed(2)} MiB`;
+  if (value >= 1024) return `${(value / 1024).toFixed(1)} KiB`;
+  return `${value} B`;
 }
 
 function updateToolLink() {
@@ -948,6 +1065,7 @@ function renderPublishChecklist() {
   const analyticsCheck = getAnalyticsCheck();
   const mobileLive2dEnabled = Boolean(currentConfig.live2d?.mobileEnabled);
   const toolCount = Array.isArray(tools) ? tools.length : 0;
+  const currentToolUsage = normalizeToolUsage(toolUsage, tools);
   const items = [
     {
       state: adminToken ? 'ok' : 'warn',
@@ -995,8 +1113,10 @@ function renderPublishChecklist() {
     {
       state: adminToken ? (toolCount ? 'ok' : 'warn') : 'warn',
       title: '小工具',
-      value: adminToken ? `${toolCount} 个 Worker 小工具` : '登录后读取小工具',
-      detail: adminToken ? '小工具保存后可自动加入导航“小工具”分类。' : '小工具必须写入 Worker/KV，本地预览模式不能发布工具页面。'
+      value: adminToken
+        ? `${toolCount} / ${currentToolUsage.maxTools} 个，${formatBytes(currentToolUsage.totalBytes)} / ${formatBytes(currentToolUsage.maxTotalBytes)}`
+        : '登录后读取小工具',
+      detail: adminToken ? '小工具保存后可自动加入导航“小工具”分类，超过配额会被 Worker 拒绝。' : '小工具必须写入 Worker/KV，本地预览模式不能发布工具页面。'
     },
     {
       state: 'ok',

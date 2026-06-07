@@ -277,6 +277,37 @@
       <div id="page-tools" class="admin-page" role="tabpanel" aria-labelledby="tab-tools" data-admin-page="tools" hidden>
         <section class="panel wide">
           <h2>小工具网站</h2>
+          <div class="tool-usage-panel" id="toolUsagePanel" aria-label="小工具资源占用">
+            <div class="tool-usage-head">
+              <div>
+                <strong>资源占用</strong>
+                <span id="toolUsageSummary">登录后读取 Worker 小工具配额。</span>
+              </div>
+              <span id="toolLargestValue">最大工具 --</span>
+            </div>
+            <div class="usage-grid">
+              <div class="usage-meter">
+                <div class="usage-meter-head">
+                  <span>数量</span>
+                  <strong id="toolCountValue">0 / 50</strong>
+                </div>
+                <div class="usage-track" aria-hidden="true">
+                  <span id="toolCountBar"></span>
+                </div>
+                <small id="toolCountPercent">0%</small>
+              </div>
+              <div class="usage-meter">
+                <div class="usage-meter-head">
+                  <span>容量</span>
+                  <strong id="toolBytesValue">0 B / 5 MiB</strong>
+                </div>
+                <div class="usage-track" aria-hidden="true">
+                  <span id="toolBytesBar"></span>
+                </div>
+                <small id="toolBytesPercent">0%</small>
+              </div>
+            </div>
+          </div>
           <div class="tool-layout">
             <div>
               <div class="section-toolbar">

@@ -167,6 +167,8 @@ npm run worker:deploy
 - `title` 最长 80 个字符。
 - `description` 最长 160 个字符。
 - `html` 最长 250000 个字符。
+- 小工具最多 50 个。
+- 小工具总占用最多 5 MiB，后台“小工具”页会显示数量和容量进度条。
 
 ## 8. 移动端规则
 
@@ -192,6 +194,7 @@ npm run worker:deploy
 - Worker 未配置 `ADMIN_PASSWORD` 或 `CONFIG_KV` 时是否返回清晰错误。
 - `/api/status` 是否能返回 Worker 部署状态和数据数量。
 - 小工具公开列表是否不暴露 HTML 内容。
+- 小工具资源占用进度条是否显示数量、容量和最大工具。
 
 ## 10. 后续可做
 

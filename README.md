@@ -247,6 +247,8 @@ GitHub 到 Cloudflare 的部署流程见 [`docs/cloudflare-github-deploy.md`](do
 * `title` 最长 80 个字符
 * `description` 最长 160 个字符
 * `html` 最长 250000 个字符
+* 小工具最多 50 个
+* 小工具总占用最多 5 MiB，后台“小工具”页会显示进度条和具体数值
 
 ---
 
