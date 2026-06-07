@@ -21,6 +21,8 @@ Simple-Nav-Page/
 ├─ worker.js                   # Cloudflare Worker 代理、配置 API、小工具 API
 ├─ wrangler.toml               # Cloudflare Worker 部署配置
 ├─ package.json                # Wrangler 本地运行、检查和部署脚本
+├─ scripts/
+│  └─ deploy-worker-auto.mjs   # 自动创建 KV 并部署 Worker
 ├─ .dev.vars.example           # 本地 Worker 后台密码示例
 ├─ links.json                  # 原始静态分类站点数据
 ├─ assets/
@@ -74,57 +76,43 @@ npm install
 npx wrangler login
 ```
 
-3. 创建 KV 命名空间：
-
-```powershell
-npx wrangler kv namespace create CONFIG_KV
-npx wrangler kv namespace create CONFIG_KV --preview
-```
-
-4. 把返回的 `id` 和 `preview_id` 填入 `wrangler.toml`：
-
-```toml
-[[kv_namespaces]]
-binding = "CONFIG_KV"
-id = "你的生产 KV id"
-preview_id = "你的预览 KV id"
-```
-
-5. 复制本地密钥示例：
+3. 复制本地密钥示例：
 
 ```powershell
 Copy-Item .dev.vars.example .dev.vars
 ```
 
-6. 修改 `.dev.vars`，用于本地调试：
+4. 修改 `.dev.vars`，用于本地调试：
 
 ```text
 ADMIN_PASSWORD=你的后台管理员密码
 ```
 
-7. 写入线上 Worker Secret：
+5. 写入线上 Worker Secret：
 
 ```powershell
 npx wrangler secret put ADMIN_PASSWORD
 ```
 
-8. 本地运行 Worker：
+6. 本地运行 Worker：
 
 ```powershell
 npm run worker:dev
 ```
 
-9. 部署 Worker：
+7. 部署 Worker：
 
 ```powershell
 npm run worker:deploy
 ```
 
-10. 将站点静态文件部署到 GitHub Pages、Cloudflare Pages 或同类静态托管。
-11. 如果前台和 Worker 不在同一域名，需要保证前台请求的 API 地址指向 Worker。
-12. 打开 `admin.html`，输入管理员密码登录。
-13. 保存配置后，线上会写入 Worker/KV，前台刷新读取公共配置。
-14. 在后台“发布检查”页点击“检测 Worker”，或直接访问 `/api/status`，确认 `ADMIN_PASSWORD`、`CONFIG_KV`、配置、分类站点、小工具、访问统计和点击统计状态。
+`npm run worker:deploy` 会自动检查并创建 KV：`simple-nav-page-config`，再生成临时配置部署 Worker。
+
+8. 将站点静态文件部署到 GitHub Pages、Cloudflare Pages 或同类静态托管。
+9. 如果前台和 Worker 不在同一域名，需要保证前台请求的 API 地址指向 Worker。
+10. 打开 `admin.html`，输入管理员密码登录。
+11. 保存配置后，线上会写入 Worker/KV，前台刷新读取公共配置。
+12. 在后台“发布检查”页点击“检测 Worker”，或直接访问 `/api/status`，确认 `ADMIN_PASSWORD`、`CONFIG_KV`、配置、分类站点、小工具、访问统计和点击统计状态。
 
 如果走 Cloudflare Pages 连接 GitHub 仓库，完整步骤见 `docs/cloudflare-github-deploy.md`。
 

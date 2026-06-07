@@ -100,22 +100,6 @@ npm install
 npx wrangler login
 ```
 
-创建 KV 命名空间：
-
-```powershell
-npx wrangler kv namespace create CONFIG_KV
-npx wrangler kv namespace create CONFIG_KV --preview
-```
-
-把命令返回的 `id` 和 `preview_id` 填入 `wrangler.toml`：
-
-```toml
-[[kv_namespaces]]
-binding = "CONFIG_KV"
-id = "你的生产 KV id"
-preview_id = "你的预览 KV id"
-```
-
 复制本地密钥示例，并修改后台管理员密码：
 
 ```powershell
@@ -146,6 +130,8 @@ npx wrangler secret put ADMIN_PASSWORD
 npm run worker:deploy
 ```
 
+`npm run worker:deploy` 会自动检查并创建 KV：`simple-nav-page-config`，不需要手动把 KV ID 写进 `wrangler.toml`。
+
 ---
 
 #### 🔗 部署后使用方式
@@ -156,13 +142,15 @@ npm run worker:deploy
 https://api.xxx.com
 ```
 
-修改 `main.js`：
+如果前台和 Worker 不同域，在 `index.html` 和 `admin.html` 里填写 Worker 根地址：
 
-```js id="m9g4cq"
-const PROXY = 'https://api.xxx.com';
-注意后面不要带有斜杠/
-当导航页显示兜底图标“黑白地球”时，表示worker异常。（duckduckgo默认图标为箭头，google默认图标为彩色地球，显示其中之一为正常）
+```html
+<meta name="simple-nav-api-base" content="https://api.xxx.com">
 ```
+
+填 Worker 根地址，不要写 `/api`，末尾不要带 `/`。
+
+图标代理地址可以在后台“站点和图标”里填写，不需要再修改 `main.js`。
 
 ---
 
@@ -189,7 +177,7 @@ Worker 会代理以下资源：
 * 使用 GitHub Pages
 * 或接入 Cloudflare Pages
 
-部署到 Cloudflare Pages 时，通常需要先把代码推送到 GitHub，再在 Cloudflare Pages 里连接仓库。完整流程见 [`docs/cloudflare-github-deploy.md`](docs/cloudflare-github-deploy.md)。
+部署到 Cloudflare 时，通常需要先把代码推送到 GitHub，再在 Cloudflare Dashboard 里连接仓库。完整流程见 [`docs/cloudflare-github-deploy.md`](docs/cloudflare-github-deploy.md)。
 
 如果 Pages 和 Worker 不是同一个域名，需要在 `index.html` 和 `admin.html` 的 meta 里填写 Worker 根地址：
 
