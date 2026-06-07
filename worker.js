@@ -97,6 +97,7 @@ const TOOL_PREFIX = 'tool:';
 const ANALYTICS_TOTAL_KEY = 'analytics:visits:total';
 const ANALYTICS_CLICKS_KEY = 'analytics:clicks';
 const ANALYTICS_DAILY_PREFIX = 'analytics:visits:day:';
+const INDEXNOW_KEY_FILE = '/13efb167ebb12c15bdab1609ebcb75f5.txt';
 const TOKEN_TTL_SECONDS = 60 * 60 * 12;
 const MAX_TOOL_SLUG_LENGTH = 64;
 const MAX_TOOL_TITLE_LENGTH = 80;
@@ -123,6 +124,7 @@ function isStaticAssetPath(pathname) {
     || pathname === '/admin.html'
     || pathname === '/robots.txt'
     || pathname === '/sitemap.xml'
+    || pathname === INDEXNOW_KEY_FILE
     || pathname === '/style.css'
     || pathname === '/links.json'
     || pathname.startsWith('/assets/')
