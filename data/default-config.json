@@ -1,6 +1,6 @@
 {
   "site": {
-    "title": "一站导航",
+    "title": "澄砚导航",
     "subtitle": "沉舟侧畔千帆过，病树前头万木春。",
     "headerIcon": "🧭",
     "logoUrl": "assets/brand/chengyan-logo.svg",
@@ -25,7 +25,7 @@
   },
   "tabTitle": {
     "enabled": true,
-    "normalTitle": "一站导航",
+    "normalTitle": "澄砚导航",
     "awayTitles": [
       "你去哪里了？快回来呀 (｡•́︿•̀｡)",
       "页面在等你呢 (つ﹏⊂)",
