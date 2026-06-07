@@ -81,6 +81,11 @@
             <input name="site.headerIcon" type="text">
           </label>
           <label>
+            <span>站点 Logo 地址</span>
+            <input name="site.logoUrl" type="text" aria-describedby="siteLogoHint">
+            <small class="field-hint" id="siteLogoHint">填写图片或 SVG 地址后，首页左侧优先显示 Logo；留空时显示左侧图标文本。</small>
+          </label>
+          <label>
             <span>右侧装饰</span>
             <input name="site.headerAccent" type="text">
           </label>
@@ -91,6 +96,11 @@
           <label>
             <span>浏览器图标 emoji</span>
             <input name="favicon.emoji" type="text">
+          </label>
+          <label>
+            <span>浏览器图标地址</span>
+            <input name="favicon.imageUrl" type="text" aria-describedby="faviconImageHint">
+            <small class="field-hint" id="faviconImageHint">默认使用站点 Logo SVG。填写图片地址后会作为标签页 favicon。</small>
           </label>
           <label>
             <span>站点图标源</span>
@@ -389,6 +399,6 @@
     </form>
   </main>
 
-  <script type="module" src="assets/js/admin/admin-app.js?v=20260607-icon-source"></script>
+  <script type="module" src="assets/js/admin/admin-app.js?v=20260607-brand-logo"></script>
 </body>
 </html>

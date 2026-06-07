@@ -74,6 +74,12 @@
 
 如果图标访问不稳定，可以填写 Worker 代理地址。
 
+默认站点 Logo 和浏览器 favicon 位于：
+
+```text
+assets/brand/chengyan-logo.svg
+```
+
 ---
 
 ### 4️⃣（推荐）部署 Cloudflare Worker

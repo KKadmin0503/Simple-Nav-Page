@@ -54,9 +54,13 @@ export function createInitialFavicon(label = 'Nav') {
 
 export function applyBrowserFavicon(config) {
   const faviconConfig = config.favicon ?? {};
-  let href = faviconConfig.imageUrl;
+  let href = faviconConfig.imageUrl || config.site?.logoUrl;
 
-  if (faviconConfig.type === 'emoji' || !href) {
+  if (!href && faviconConfig.type === 'emoji') {
+    href = createEmojiFavicon(faviconConfig.emoji || config.site?.headerIcon || '🧭');
+  }
+
+  if (!href) {
     href = createEmojiFavicon(faviconConfig.emoji || config.site?.headerIcon || '🧭');
   }
 

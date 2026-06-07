@@ -1,6 +1,6 @@
 import { loadConfig } from './config-loader.js';
 import { applyBackground } from './features/background.js?v=20260607-adapt-a11y2';
-import { applyBrowserFavicon } from './features/favicon.js?v=20260607-icon-source';
+import { applyBrowserFavicon } from './features/favicon.js?v=20260607-brand-logo';
 import { initTabTitle } from './features/tab-title.js';
 import { initQuote } from './features/quote.js';
 import { createNetMode } from './features/net-mode.js';
@@ -75,7 +75,23 @@ function applySiteConfig(config) {
   if (subtitleEl) subtitleEl.textContent = site.subtitle ?? '';
 
   const headerIcon = document.getElementById('headerIcon');
-  if (headerIcon) headerIcon.textContent = site.headerIcon ?? '';
+  if (headerIcon) {
+    const logoUrl = String(site.logoUrl || config.favicon?.imageUrl || '').trim();
+    if (logoUrl) {
+      headerIcon.classList.add('brand-mark');
+      headerIcon.innerHTML = '';
+      const logo = document.createElement('img');
+      logo.src = logoUrl;
+      logo.alt = '';
+      logo.decoding = 'async';
+      logo.width = 46;
+      logo.height = 46;
+      headerIcon.appendChild(logo);
+    } else {
+      headerIcon.classList.remove('brand-mark');
+      headerIcon.textContent = site.headerIcon ?? '';
+    }
+  }
 
   const headerAccent = document.getElementById('headerAccent');
   if (headerAccent) headerAccent.textContent = site.headerAccent ?? '';

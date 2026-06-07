@@ -26,6 +26,8 @@ Simple-Nav-Page/
 ├─ .dev.vars.example           # 本地 Worker 后台密码示例
 ├─ links.json                  # 原始静态分类站点数据
 ├─ assets/
+│  ├─ brand/
+│  │  └─ chengyan-logo.svg    # 默认站点 Logo 和 favicon
 │  ├─ css/
 │  │  └─ admin.css             # 后台样式
 │  └─ js/
@@ -129,7 +131,7 @@ npm run worker:deploy
 
 后台分为六页：
 
-- 基础配置：站点标题、标签页标题、favicon 图标源、访问统计、动态常用、背景、一言、特效、Live2D。
+- 基础配置：站点标题、站点 Logo、标签页标题、favicon 图标源、访问统计、动态常用、背景、一言、特效、Live2D。
 - 分类站点：新增、删除、编辑分类和站点。
 - 小工具：创建、更新、删除 Worker 托管的小工具页面。
 - 导入导出：直接查看和替换配置 JSON。
