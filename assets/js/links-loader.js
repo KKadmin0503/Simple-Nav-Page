@@ -7,7 +7,7 @@ export async function loadLinksData(file = 'links.json') {
   const defaultLinks = await loadDefaultLinks(file);
   const serverLinks = await loadServerLinks();
   const localLinks = readLocalLinks();
-  return sanitizeLinks(localLinks ?? serverLinks ?? defaultLinks);
+  return firstNonEmptyLinks(localLinks, serverLinks, defaultLinks);
 }
 
 export async function loadDefaultLinks(file = 'links.json') {
@@ -65,6 +65,14 @@ export function sanitizeLinks(links) {
       items: Array.isArray(section?.items) ? section.items.map(sanitizeItem).filter(Boolean) : []
     }))
     .filter(section => section.section && section.section !== '常用');
+}
+
+function firstNonEmptyLinks(...sources) {
+  for (const source of sources) {
+    const links = sanitizeLinks(source);
+    if (links.length) return links;
+  }
+  return [];
 }
 
 function sanitizeItem(item) {

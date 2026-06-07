@@ -9,7 +9,7 @@ import { initLive2D } from './features/live2d.js?v=20260607-adapt-a11y2';
 import { renderCards } from './nav-renderer.js?v=20260607-front-optimize';
 import { createSearch } from './search.js?v=20260607-front-optimize';
 import { getDomain } from './utils/url.js?v=20260607-icon-source';
-import { loadLinksData } from './links-loader.js';
+import { loadLinksData } from './links-loader.js?v=20260607-links-fallback';
 import {
   buildDynamicSections,
   initAnalytics,
