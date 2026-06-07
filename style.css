@@ -831,6 +831,7 @@ h1::after {
 /* ===== 前台公告 ===== */
 .announcement-dialog {
   width: min(440px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
   padding: 0;
   border: 1px solid rgba(255,255,255,0.18);
   border-radius: var(--radius-card);
@@ -839,6 +840,14 @@ h1::after {
   box-shadow: 0 24px 80px rgba(0,0,0,0.5);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
+}
+
+.announcement-dialog[open] {
+  position: fixed;
+  inset: 50% auto auto 50vw;
+  margin: 0;
+  transform: translate(-50%, -50%);
+  overflow: auto;
 }
 
 .announcement-dialog::backdrop {
