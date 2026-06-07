@@ -1,0 +1,169 @@
+{
+  "site": {
+    "title": "一站导航",
+    "subtitle": "沉舟侧畔千帆过，病树前头万木春。",
+    "headerIcon": "🧭",
+    "headerAccent": "✦"
+  },
+  "assets": {
+    "linksFile": "links.json"
+  },
+  "analytics": {
+    "enabled": true,
+    "visitStatsEnabled": true,
+    "popularSectionTitle": "常用",
+    "popularLimit": 16
+  },
+  "favicon": {
+    "provider": "duckduckgo",
+    "proxy": "",
+    "type": "emoji",
+    "emoji": "🧭",
+    "imageUrl": "",
+    "defaultIcon": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTAiPjwvY2lyY2xlPjxwYXRoIGQ9Ik0yIDEyaDIwIj48L3BhdGg+PHBhdGggZD0iTTEyIDJhMTUuMyAxNS4zIDAgMCAxIDQgMTAgMTUuMyAxNS4zIDAgMCAxLTQgMTAgMTUuMyAxNS4zIDAgMCAxLTQtMTAgMTUuMyAxNS4zIDAgMCAxIDQtMTB6Ij48L3BhdGg+PC9zdmc+"
+  },
+  "tabTitle": {
+    "enabled": true,
+    "normalTitle": "一站导航",
+    "awayTitles": [
+      "你去哪里了？快回来呀 (｡•́︿•̀｡)",
+      "页面在等你呢 (つ﹏⊂)",
+      "不要丢下我嘛 (｡•́︵•̀｡)",
+      "这里还亮着灯呢 ( ´･･)ﾉ(._.`)"
+    ],
+    "backTitles": [
+      "欢迎回来！ヾ(≧▽≦*)o",
+      "你回来啦 (๑>◡<๑)",
+      "又见面了！(*´▽`*)",
+      "刚刚有点想你 (。・ω・。)"
+    ],
+    "restoreDelay": 2200
+  },
+  "quote": {
+    "enabled": true,
+    "endpoint": "https://api.yuafeng.cn/API/yiyan/api.php?type=text",
+    "responseType": "text",
+    "timeout": 15000,
+    "fallback": "沉舟侧畔千帆过，病树前头万木春。"
+  },
+  "background": {
+    "mode": "image-api",
+    "desktopImageApi": "https://imgapi.cn/api.php?fl=dongman&gs=images&t=",
+    "mobileImageApi": "https://imgapi.cn/api.php?zd=mobile&fl=fengjing&gs=images&t=",
+    "fixedImage": "",
+    "videoApi": "",
+    "fixedVideo": "",
+    "videoApiResponseType": "text",
+    "overlayOpacity": 0,
+    "blur": 0,
+    "refreshOnReload": true
+  },
+  "ambientEffect": {
+    "enabled": true,
+    "type": "sakura",
+    "intensity": 0.65,
+    "maxParticles": 70,
+    "speed": 1,
+    "opacity": 0.82,
+    "wind": 0.35,
+    "mobileEnabled": false
+  },
+  "live2d": {
+    "enabled": true,
+    "mobileEnabled": false,
+    "position": "right-bottom",
+    "width": 280,
+    "height": 250,
+    "hOffset": 18,
+    "vOffset": 0,
+    "draggable": true,
+    "tools": ["hitokoto", "asteroids", "switch-model", "switch-texture", "photo", "info", "quit"],
+    "resources": {
+      "basePath": "https://fastly.jsdelivr.net/npm/live2d-widgets@1.0.1/dist/",
+      "css": "https://fastly.jsdelivr.net/npm/live2d-widgets@1.0.1/dist/waifu.css",
+      "script": "https://fastly.jsdelivr.net/npm/live2d-widgets@1.0.1/dist/waifu-tips.js",
+      "waifuPath": "https://fastly.jsdelivr.net/npm/live2d-widgets@1.0.1/dist/waifu-tips.json",
+      "cubism2Path": "https://fastly.jsdelivr.net/npm/live2d-widgets@1.0.1/dist/live2d.min.js",
+      "cubism5Path": "https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js",
+      "cdnPath": "https://fastly.jsdelivr.net/gh/fghrsh/live2d_api/"
+    }
+  },
+  "search": {
+    "defaultCategoryId": "engine",
+    "categories": [
+      {
+        "id": "engine",
+        "label": "引擎",
+        "icon": "🔍",
+        "engines": [
+          { "name": "百度", "url": "https://www.baidu.com/s?wd=", "domain": "baidu.com" },
+          { "name": "Google", "url": "https://www.google.com/search?q=", "domain": "google.com" },
+          { "name": "Brave", "url": "https://search.brave.com/search?q=", "domain": "search.brave.com" },
+          { "name": "搜狗", "url": "https://www.sogou.com/web?query=", "domain": "sogou.com" },
+          { "name": "Bing", "url": "https://www.bing.com/search?q=", "domain": "bing.com" },
+          { "name": "DuckDuckGo", "url": "https://duckduckgo.com/?q=", "domain": "duckduckgo.com" },
+          { "name": "360", "url": "https://www.so.com/s?q=", "domain": "so.com" },
+          { "name": "夸克", "url": "https://www.quark.cn/s?q=", "domain": "quark.cn" }
+        ]
+      },
+      {
+        "id": "community",
+        "label": "社区",
+        "icon": "💬",
+        "engines": [
+          { "name": "GitHub", "url": "https://github.com/search?q=", "domain": "github.com" },
+          { "name": "微博", "url": "https://s.weibo.com/weibo?q=", "domain": "weibo.com" },
+          { "name": "知乎", "url": "https://www.zhihu.com/search?q=", "domain": "zhihu.com" },
+          { "name": "豆瓣", "url": "https://www.douban.com/search?q=", "domain": "douban.com" },
+          { "name": "贴吧", "url": "https://tieba.baidu.com/f/search/res?qw=", "domain": "tieba.baidu.com" },
+          { "name": "Reddit", "url": "https://www.reddit.com/search/?q=", "domain": "reddit.com" }
+        ]
+      },
+      {
+        "id": "video",
+        "label": "视频",
+        "icon": "🎬",
+        "engines": [
+          { "name": "B站", "url": "https://search.bilibili.com/all?keyword=", "domain": "bilibili.com" },
+          { "name": "腾讯", "url": "https://v.qq.com/search.html#stag=0&s=", "domain": "v.qq.com" },
+          { "name": "爱奇艺", "url": "https://so.iqiyi.com/so/q_", "domain": "iqiyi.com" },
+          { "name": "优酷", "url": "https://so.youku.com/search_video/q_", "domain": "youku.com" },
+          { "name": "芒果", "url": "https://so.mgtv.com/so/k-", "domain": "mgtv.com" }
+        ]
+      },
+      {
+        "id": "music",
+        "label": "音乐",
+        "icon": "🎵",
+        "engines": [
+          { "name": "QQ音乐", "url": "https://y.qq.com/portal/search.html#page=1&searchid=1&remoteplace=txt.yqq.top&t=song&w=", "domain": "y.qq.com" },
+          { "name": "网易云", "url": "https://music.163.com/#/search/m/?s=", "domain": "music.163.com" }
+        ]
+      },
+      {
+        "id": "life",
+        "label": "生活",
+        "icon": "🛒",
+        "engines": [
+          { "name": "淘宝", "url": "https://s.taobao.com/search?q=", "domain": "taobao.com" },
+          { "name": "京东", "url": "https://search.jd.com/Search?keyword=", "domain": "jd.com" },
+          { "name": "拼多多", "url": "https://mobile.yangkeduo.com/search_result.html?search_key=", "domain": "pinduoduo.com" },
+          { "name": "做菜", "url": "https://www.xiachufang.com/search/?keyword=", "domain": "xiachufang.com" },
+          { "name": "翻译", "url": "https://fanyi.baidu.com/#zh/en/", "domain": "fanyi.baidu.com" }
+        ]
+      },
+      {
+        "id": "job",
+        "label": "求职",
+        "icon": "💼",
+        "engines": [
+          { "name": "智联招聘", "url": "https://sou.zhaopin.com/?jl=530&kw=", "domain": "zhaopin.com" },
+          { "name": "BOSS直聘", "url": "https://www.zhipin.com/web/geek/job?query=", "domain": "zhipin.com" },
+          { "name": "猎聘", "url": "https://www.liepin.com/zhaopin/?key=", "domain": "liepin.com" },
+          { "name": "前程无忧", "url": "https://search.51job.com/list/000000,000000,0000,00,9,99,", "domain": "51job.com" },
+          { "name": "拉勾网", "url": "https://www.lagou.com/wn/jobs?kd=", "domain": "lagou.com" }
+        ]
+      }
+    ]
+  }
+}

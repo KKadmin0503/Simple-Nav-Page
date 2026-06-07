@@ -74,23 +74,75 @@
 
 ---
 
-### 4️⃣（推荐）使用 Cloudflare Worker 代理（解决国内访问问题）
+### 4️⃣（推荐）部署 Cloudflare Worker
 
 如果你在国内访问时遇到：
 
 * 图标无法加载
 
-可以使用项目内置的 `worker.js` 来部署代理服务。
+可以使用项目内置的 `worker.js` 来部署代理服务。改造后的 Worker 也负责后台登录、线上配置保存、小工具托管、访问统计和点击统计。
 
 ---
 
-#### 📦 部署步骤
+#### 📦 命令部署流程
 
-1. 打开 Cloudflare
-2. 进入 **Workers & Pages**
-3. 创建一个 Worker
-4. 将项目中的 `worker.js` 代码复制进去
-5. 绑定一个自定义域名
+先安装依赖：
+
+```powershell
+npm install
+```
+
+登录 Cloudflare：
+
+```powershell
+npx wrangler login
+```
+
+创建 KV 命名空间：
+
+```powershell
+npx wrangler kv namespace create CONFIG_KV
+npx wrangler kv namespace create CONFIG_KV --preview
+```
+
+把命令返回的 `id` 和 `preview_id` 填入 `wrangler.toml`：
+
+```toml
+[[kv_namespaces]]
+binding = "CONFIG_KV"
+id = "你的生产 KV id"
+preview_id = "你的预览 KV id"
+```
+
+复制本地密钥示例，并修改后台管理员密码：
+
+```powershell
+Copy-Item .dev.vars.example .dev.vars
+```
+
+`.dev.vars` 内容示例：
+
+```text
+ADMIN_PASSWORD=你的后台管理员密码
+```
+
+本地运行 Worker：
+
+```powershell
+npm run worker:dev
+```
+
+写入线上后台密码：
+
+```powershell
+npx wrangler secret put ADMIN_PASSWORD
+```
+
+部署 Worker：
+
+```powershell
+npm run worker:deploy
+```
 
 ---
 
@@ -135,9 +187,62 @@ Worker 会代理以下资源：
 * 使用 GitHub Pages
 * 或接入 Cloudflare Pages
 
+部署到 Cloudflare Pages 时，通常需要先把代码推送到 GitHub，再在 Cloudflare Pages 里连接仓库。完整流程见 [`docs/cloudflare-github-deploy.md`](docs/cloudflare-github-deploy.md)。
+
+如果 Pages 和 Worker 不是同一个域名，需要在 `index.html` 和 `admin.html` 的 meta 里填写 Worker 根地址：
+
+```html
+<meta name="simple-nav-api-base" content="https://你的-worker.workers.dev">
+```
+
+填的是 Worker 根地址，不要写 `/api`。
+
 ---
 
-### 6️⃣ 完成 🎉
+### 6️⃣ 管理后台（可选）
+
+项目已预留 `admin.html` 后台配置页。纯静态部署时，后台会把配置保存到当前浏览器，适合本地预览；如果需要线上管理员密码和公共配置，需要配合 Cloudflare Worker。
+
+Worker 需要配置：
+
+* 环境变量：`ADMIN_PASSWORD`
+* KV 绑定：`CONFIG_KV`
+* 部署配置：`wrangler.toml`
+* 本地密钥：复制 `.dev.vars.example` 为 `.dev.vars`
+
+接口：
+
+* `GET /api/config`：前台读取线上配置
+* `POST /api/admin/login`：后台登录
+* `GET /api/admin/config`：后台读取配置
+* `PUT /api/admin/config`：后台保存配置
+* `GET /api/links`：前台读取分类和站点
+* `GET /api/admin/links`：后台读取分类和站点
+* `PUT /api/admin/links`：后台保存分类和站点
+* `GET /api/tools`：公开读取小工具列表
+* `GET /api/admin/tools`：后台读取小工具列表
+* `PUT /api/admin/tools`：创建或更新小工具网站
+* `DELETE /api/admin/tools/<slug>`：删除小工具网站
+* `GET /tools/<slug>/`：访问 Worker 托管的小工具页面
+* `GET /api/status`：检查 Worker、后台密码、KV、配置、站点和小工具状态
+* `GET /api/analytics`：读取访问统计和点击统计
+* `POST /api/analytics/visit`：记录一次访问
+* `POST /api/analytics/click`：记录一次站点点击，用于动态常用
+
+AI 创建小工具的接口说明见 [`docs/ai-tool-api.md`](docs/ai-tool-api.md)。
+完整改造流程和结构清单见 [`docs/project-flow.md`](docs/project-flow.md)。
+GitHub 到 Cloudflare 的部署流程见 [`docs/cloudflare-github-deploy.md`](docs/cloudflare-github-deploy.md)。
+
+小工具字段限制：
+
+* `slug` 最长 64 个字符，只保留小写字母、数字和中划线
+* `title` 最长 80 个字符
+* `description` 最长 160 个字符
+* `html` 最长 250000 个字符
+
+---
+
+### 7️⃣ 完成 🎉
 
 ---
 

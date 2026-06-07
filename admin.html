@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="simple-nav-api-base" content="">
+  <title>导航后台</title>
+  <link rel="stylesheet" href="assets/css/admin.css?v=20260607-publish-check">
+</head>
+<body>
+  <main class="admin-shell">
+    <header class="admin-header">
+      <div>
+        <h1>导航后台</h1>
+        <p>登录后可保存到 Worker/KV；本地开发时会自动保留浏览器预览配置。</p>
+      </div>
+      <div class="header-actions">
+        <a class="ghost-btn" href="index.html" target="_blank" rel="noopener noreferrer">打开前台</a>
+        <button id="logoutBtn" class="ghost-btn" type="button" hidden>退出登录</button>
+        <button id="resetBtn" class="ghost-btn" type="button">恢复默认</button>
+        <button id="saveBtn" class="primary-btn" type="button">保存配置</button>
+      </div>
+    </header>
+
+    <section class="status-bar" id="statusBar" role="status" aria-live="polite">正在加载配置...</section>
+
+    <section class="setup-panel" id="setupPanel" aria-label="后台当前状态">
+      <div class="setup-copy">
+        <span class="setup-label">当前模式</span>
+        <strong id="setupModeTitle">本地预览</strong>
+        <p id="setupModeText">保存写入当前浏览器，适合部署前调试。</p>
+      </div>
+      <div class="setup-steps" aria-label="后台进度">
+        <span class="setup-step active" data-setup-step="loaded">配置已加载</span>
+        <span class="setup-step" data-setup-step="remote">Worker 未登录</span>
+        <span class="setup-step" data-setup-step="saved">等待保存</span>
+      </div>
+      <div class="setup-actions">
+        <button class="ghost-btn" type="button" data-setup-page="links">编辑分类</button>
+        <button class="ghost-btn" type="button" data-setup-page="tools">创建小工具</button>
+        <button class="ghost-btn" type="button" data-setup-page="preview">预览前台</button>
+      </div>
+    </section>
+
+    <section class="panel login-panel" id="loginPanel">
+      <h2>管理员登录</h2>
+      <div class="login-row">
+        <label>
+          <span>管理员密码</span>
+          <input id="passwordInput" type="password" autocomplete="current-password" placeholder="输入 Worker 环境变量 ADMIN_PASSWORD" aria-describedby="passwordHint">
+          <small class="field-hint" id="passwordHint">未部署 Worker 时可以不登录，保存只用于当前浏览器预览。</small>
+        </label>
+        <button id="loginBtn" class="primary-btn" type="button">登录</button>
+      </div>
+      <p>未部署 Worker 或未绑定 KV 时，后台仍可本地预览，但不会成为线上公共配置。</p>
+    </section>
+
+    <nav class="admin-tabs" role="tablist" aria-label="后台分页">
+      <button id="tab-basic" class="admin-tab active" role="tab" aria-selected="true" aria-controls="page-basic" type="button" data-admin-tab="basic">基础配置</button>
+      <button id="tab-links" class="admin-tab" role="tab" aria-selected="false" aria-controls="page-links" type="button" data-admin-tab="links">分类站点</button>
+      <button id="tab-tools" class="admin-tab" role="tab" aria-selected="false" aria-controls="page-tools" type="button" data-admin-tab="tools">小工具</button>
+      <button id="tab-json" class="admin-tab" role="tab" aria-selected="false" aria-controls="page-json" type="button" data-admin-tab="json">导入导出</button>
+      <button id="tab-publish" class="admin-tab" role="tab" aria-selected="false" aria-controls="page-publish" type="button" data-admin-tab="publish">发布检查</button>
+      <button id="tab-preview" class="admin-tab" role="tab" aria-selected="false" aria-controls="page-preview" type="button" data-admin-tab="preview">前台预览</button>
+    </nav>
+
+    <form id="adminForm" class="admin-grid">
+      <div id="page-basic" class="admin-page active" role="tabpanel" aria-labelledby="tab-basic" data-admin-page="basic">
+        <section class="panel">
+          <h2>站点基础</h2>
+          <label>
+            <span>首页标题</span>
+            <input name="site.title" type="text">
+          </label>
+          <label>
+            <span>默认副标题</span>
+            <input name="site.subtitle" type="text">
+          </label>
+          <label>
+            <span>左侧图标</span>
+            <input name="site.headerIcon" type="text">
+          </label>
+          <label>
+            <span>右侧装饰</span>
+            <input name="site.headerAccent" type="text">
+          </label>
+          <label>
+            <span>标签页标题</span>
+            <input name="tabTitle.normalTitle" type="text">
+          </label>
+          <label>
+            <span>浏览器图标 emoji</span>
+            <input name="favicon.emoji" type="text">
+          </label>
+        </section>
+
+        <section class="panel">
+          <h2>统计和常用</h2>
+          <label class="switch-row">
+            <span>启用访问统计</span>
+            <input name="analytics.enabled" type="checkbox">
+          </label>
+          <label class="switch-row">
+            <span>前台显示统计卡片</span>
+            <input name="analytics.visitStatsEnabled" type="checkbox">
+          </label>
+          <label>
+            <span>常用数量上限</span>
+            <input name="analytics.popularLimit" type="number" min="1" max="16" step="1" aria-describedby="popularLimitHint">
+            <small class="field-hint" id="popularLimitHint">“常用”由点击次数自动生成，最多 16 个，不在分类站点里手动编辑。</small>
+          </label>
+        </section>
+
+        <section class="panel">
+          <h2>一言</h2>
+          <label class="switch-row">
+            <span>启用一言</span>
+            <input name="quote.enabled" type="checkbox">
+          </label>
+          <label>
+            <span>接口地址</span>
+            <input name="quote.endpoint" type="url" aria-describedby="quoteEndpointHint">
+            <small class="field-hint" id="quoteEndpointHint">建议使用直接返回纯文本的一言接口。</small>
+          </label>
+          <label>
+            <span>失败兜底</span>
+            <input name="quote.fallback" type="text">
+          </label>
+          <label>
+            <span>超时时间 ms</span>
+            <input name="quote.timeout" type="number" min="1000" step="500">
+          </label>
+        </section>
+
+        <section class="panel">
+          <h2>背景</h2>
+          <label>
+            <span>背景模式</span>
+            <select name="background.mode">
+              <option value="image-api">图片接口</option>
+              <option value="fixed-image">固定图片</option>
+              <option value="video-api">视频接口</option>
+              <option value="fixed-video">固定视频</option>
+            </select>
+          </label>
+          <label>
+            <span>桌面图片接口</span>
+            <input name="background.desktopImageApi" type="url" aria-describedby="desktopImageApiHint">
+            <small class="field-hint" id="desktopImageApiHint">接口应直接返回图片，或跳转到图片地址。</small>
+          </label>
+          <label>
+            <span>手机图片接口</span>
+            <input name="background.mobileImageApi" type="url" aria-describedby="mobileImageApiHint">
+            <small class="field-hint" id="mobileImageApiHint">留空时会沿用桌面图片接口。</small>
+          </label>
+          <label>
+            <span>固定图片</span>
+            <input name="background.fixedImage" type="url">
+          </label>
+          <label>
+            <span>视频接口</span>
+            <input name="background.videoApi" type="url" aria-describedby="videoApiHint">
+            <small class="field-hint" id="videoApiHint">接口应返回可直接播放的视频地址；低动效模式会自动降级。</small>
+          </label>
+          <label>
+            <span>固定视频</span>
+            <input name="background.fixedVideo" type="url">
+          </label>
+          <label>
+            <span>遮罩透明度</span>
+            <input name="background.overlayOpacity" type="number" min="0" max="0.8" step="0.05">
+          </label>
+        </section>
+
+        <section class="panel">
+          <h2>页面氛围</h2>
+          <label class="switch-row">
+            <span>启用特效</span>
+            <input name="ambientEffect.enabled" type="checkbox">
+          </label>
+          <label>
+            <span>特效类型</span>
+            <select name="ambientEffect.type">
+              <option value="sakura">樱花</option>
+              <option value="snow">雪花</option>
+              <option value="rain">下雨</option>
+              <option value="none">关闭</option>
+            </select>
+          </label>
+          <label>
+            <span>强度</span>
+            <input name="ambientEffect.intensity" type="number" min="0.1" max="1" step="0.05">
+          </label>
+          <label>
+            <span>最大粒子数</span>
+            <input name="ambientEffect.maxParticles" type="number" min="10" max="180" step="5">
+          </label>
+          <label>
+            <span>速度</span>
+            <input name="ambientEffect.speed" type="number" min="0.2" max="3" step="0.1">
+          </label>
+        </section>
+
+        <section class="panel">
+          <h2>Live2D</h2>
+          <label class="switch-row">
+            <span>启用看板娘</span>
+            <input name="live2d.enabled" type="checkbox">
+          </label>
+          <label class="switch-row">
+            <span>允许拖拽</span>
+            <input name="live2d.draggable" type="checkbox">
+          </label>
+          <label class="switch-row">
+            <span>手机端显示</span>
+            <input name="live2d.mobileEnabled" type="checkbox">
+          </label>
+          <label>
+            <span>位置</span>
+            <select name="live2d.position">
+              <option value="right-bottom">右下角</option>
+            </select>
+          </label>
+          <label>
+            <span>模型 CDN</span>
+            <input name="live2d.resources.cdnPath" type="url">
+          </label>
+        </section>
+      </div>
+
+      <div id="page-links" class="admin-page" role="tabpanel" aria-labelledby="tab-links" data-admin-page="links" hidden>
+        <section class="panel wide links-panel">
+          <div class="panel-title-row">
+            <div>
+              <h2>分类和站点</h2>
+              <p id="linksSummary">正在读取分类...</p>
+            </div>
+            <div class="section-toolbar">
+              <button id="addSectionBtn" class="ghost-btn" type="button">新增分类</button>
+              <button id="reloadLinksBtn" class="ghost-btn" type="button">重载默认链接</button>
+            </div>
+          </div>
+          <div id="linksEditor" class="links-editor">
+            <aside class="section-list-panel" aria-label="分类列表">
+              <div id="sectionList" class="section-list"></div>
+            </aside>
+            <section class="section-detail-panel" aria-label="当前分类站点">
+              <div class="section-detail-head">
+                <label class="section-name-field">
+                  <span>分类名称</span>
+                  <input id="sectionNameInput" type="text" placeholder="分类名称">
+                </label>
+                <div class="section-detail-actions">
+                  <button id="addSiteBtn" class="primary-btn" type="button">新增站点</button>
+                  <button id="deleteSectionBtn" class="ghost-btn danger-btn" type="button">删除分类</button>
+                </div>
+              </div>
+              <div id="siteList" class="site-list"></div>
+            </section>
+          </div>
+        </section>
+      </div>
+
+      <div id="page-tools" class="admin-page" role="tabpanel" aria-labelledby="tab-tools" data-admin-page="tools" hidden>
+        <section class="panel wide">
+          <h2>小工具网站</h2>
+          <div class="tool-layout">
+            <div>
+              <div class="section-toolbar">
+                <button id="addToolBtn" class="ghost-btn" type="button">新增小工具</button>
+                <button id="reloadToolsBtn" class="ghost-btn" type="button">刷新列表</button>
+              </div>
+              <div id="toolsList" class="tools-list"></div>
+            </div>
+            <div class="tool-editor">
+              <label>
+                <span>工具 Slug</span>
+                <input id="toolSlug" type="text" placeholder="例如 bmi-calculator" aria-describedby="toolSlugHint">
+                <small class="field-hint" id="toolSlugHint">用于 /tools/slug/，只保留小写字母、数字和中划线。</small>
+              </label>
+              <label>
+                <span>工具名称</span>
+                <input id="toolTitle" type="text" placeholder="例如 BMI 计算器">
+              </label>
+              <label>
+                <span>工具描述</span>
+                <input id="toolDescription" type="text" placeholder="显示在导航卡片里的说明">
+              </label>
+              <label>
+                <span>HTML 内容</span>
+                <textarea id="toolHtml" spellcheck="false" placeholder="完整 HTML，或 body 内部内容" aria-describedby="toolHtmlHint"></textarea>
+                <small class="field-hint" id="toolHtmlHint">工具页会被 sandbox 隔离，不要依赖后台登录态或同源存储。</small>
+              </label>
+              <label class="switch-row">
+                <span>保存后加入导航“小工具”分类</span>
+                <input id="toolAddToNav" type="checkbox" checked>
+              </label>
+              <div class="panel-actions">
+                <button id="saveToolBtn" class="primary-btn" type="button">保存小工具</button>
+                <button id="deleteToolBtn" class="ghost-btn" type="button">删除小工具</button>
+                <a id="openToolLink" class="ghost-btn" href="#" target="_blank" rel="noopener noreferrer">打开工具</a>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div id="page-json" class="admin-page" role="tabpanel" aria-labelledby="tab-json" data-admin-page="json" hidden>
+        <section class="panel wide">
+          <h2>导入 / 导出</h2>
+          <p>这里编辑的是页面配置 JSON；分类和站点数据请在上方“分类和站点”面板编辑。</p>
+          <textarea id="jsonEditor" spellcheck="false"></textarea>
+          <div class="panel-actions">
+            <button id="loadJsonBtn" class="ghost-btn" type="button">从文本载入</button>
+            <button id="copyJsonBtn" class="ghost-btn" type="button">复制当前 JSON</button>
+          </div>
+        </section>
+      </div>
+
+      <div id="page-publish" class="admin-page" role="tabpanel" aria-labelledby="tab-publish" data-admin-page="publish" hidden>
+        <section class="panel wide">
+          <div class="panel-title-row">
+            <div>
+              <h2>发布检查</h2>
+              <p>上线前确认保存位置、导航数据、小工具、手机端策略和备份文件。</p>
+            </div>
+            <div class="panel-actions">
+              <button id="checkWorkerBtn" class="ghost-btn" type="button">检测 Worker</button>
+              <button id="refreshChecklistBtn" class="ghost-btn" type="button">刷新检查</button>
+              <button id="copyBackupBtn" class="ghost-btn" type="button">复制完整备份</button>
+              <a class="ghost-btn" href="docs/project-flow.md" target="_blank" rel="noopener noreferrer">流程文档</a>
+              <a class="ghost-btn" href="docs/ai-tool-api.md" target="_blank" rel="noopener noreferrer">AI 接口文档</a>
+            </div>
+          </div>
+          <div id="publishChecklist" class="publish-checklist" aria-live="polite"></div>
+        </section>
+      </div>
+
+      <div id="page-preview" class="admin-page" role="tabpanel" aria-labelledby="tab-preview" data-admin-page="preview" hidden>
+        <section class="panel wide">
+          <h2>前台预览</h2>
+          <iframe id="previewFrame" class="preview-frame" src="index.html" title="前台预览"></iframe>
+        </section>
+      </div>
+    </form>
+  </main>
+
+  <script type="module" src="assets/js/admin/admin-app.js?v=20260607-api-base"></script>
+</body>
+</html>

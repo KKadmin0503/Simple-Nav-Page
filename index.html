@@ -3,22 +3,35 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <meta name="simple-nav-api-base" content="">
   <title>一站导航</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧭</text></svg>">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=20260607-analytics">
 </head>
 <body>
 <div id="bgLayer"></div>
+<div id="ambientLayer" aria-hidden="true"></div>
 <div id="bgOverlay"></div>
 <div class="container">
   <!-- 头部 -->
   <div class="header-area">
-    <span class="header-icon">🧭</span>
+    <span class="header-icon" id="headerIcon">🧭</span>
     <div>
-      <h1>一站导航</h1>
-      <p class="header-subtitle">沉舟侧畔千帆过，病树前头万木春。</p>
+      <h1 id="siteTitle">一站导航</h1>
+      <p class="header-subtitle" id="siteSubtitle">沉舟侧畔千帆过，病树前头万木春。</p>
     </div>
-    <span class="header-icon">✦</span>
+    <span class="header-icon" id="headerAccent">✦</span>
+  </div>
+  <div class="visit-stats" id="visitStats" aria-label="网站访问统计" hidden>
+    <div class="visit-stat">
+      <strong id="visitTotal">--</strong>
+      <span>总访问</span>
+    </div>
+    <div class="visit-stat">
+      <strong id="visitToday">--</strong>
+      <span>今日访问</span>
+    </div>
+    <small id="visitSource">本地预览</small>
   </div>
   <!-- 搜索区域 -->
   <div class="search-wrapper">
@@ -27,7 +40,7 @@
     <!-- 搜索框 -->
     <div class="search-box">
       <button class="engine-trigger" id="engineTrigger" aria-label="切换搜索引擎">
-        <img id="search-engine-icon" src="" alt="搜索引擎图标">
+        <img id="search-engine-icon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M2 12h20'/%3E%3Cpath d='M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z'/%3E%3C/svg%3E" alt="搜索引擎图标">
         <span class="engine-name" id="engineName"></span>
         <span class="engine-arrow" id="engineArrow">▾</span>
       </button>
@@ -45,9 +58,9 @@
     <div class="engine-list" id="enginePanel" style="display:none;"></div>
   </div>
 
-  <!-- 链接分区（由 main.js 动态渲染） -->
+  <!-- 链接分区（由模块入口动态渲染） -->
   <div id="main-content"></div>
 </div>
-<script src="main.js"></script>
+<script type="module" src="assets/js/app.js?v=20260607-api-base"></script>
 </body>
 </html>

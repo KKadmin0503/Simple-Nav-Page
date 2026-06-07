@@ -1,0 +1,15 @@
+{
+  "name": "simple-nav-page",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Configurable personal navigation page with Cloudflare Worker admin APIs.",
+  "scripts": {
+    "worker:check": "node --check worker.js",
+    "worker:dev": "wrangler dev",
+    "worker:deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.98.0"
+  }
+}

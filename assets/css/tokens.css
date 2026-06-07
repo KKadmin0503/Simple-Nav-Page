@@ -1,0 +1,39 @@
+:root {
+  --nav-color-primary: #63C174;
+  --nav-color-primary-deep: #3F9D52;
+  --nav-color-primary-soft: rgba(99, 193, 116, 0.22);
+  --nav-color-primary-wash: rgba(34, 197, 94, 0.14);
+
+  --nav-color-ink: #ffffff;
+  --nav-color-ink-strong: #f4f7fb;
+  --nav-color-ink-soft: rgba(255, 255, 255, 0.78);
+  --nav-color-ink-muted: rgba(244, 247, 251, 0.62);
+
+  --nav-color-front-bg: #1a1a1a;
+  --nav-color-admin-bg: #111821;
+  --nav-color-surface: rgba(9, 14, 20, 0.58);
+  --nav-color-surface-soft: rgba(255, 255, 255, 0.05);
+  --nav-color-surface-control: rgba(255, 255, 255, 0.08);
+  --nav-color-surface-panel: rgba(5, 10, 18, 0.58);
+
+  --nav-color-border: rgba(255, 255, 255, 0.18);
+  --nav-color-border-soft: rgba(255, 255, 255, 0.14);
+  --nav-color-border-strong: rgba(255, 255, 255, 0.22);
+
+  --nav-color-success: #b4f5c7;
+  --nav-color-warning: #ffd38a;
+  --nav-color-danger: #f87171;
+  --nav-color-danger-soft: #ffb4b4;
+
+  --nav-radius-sm: 8px;
+  --nav-radius-md: 10px;
+  --nav-radius-section: 16px;
+  --nav-radius-pill: 999px;
+
+  --nav-shadow-front: 0 14px 38px rgba(0, 0, 0, 0.28);
+  --nav-shadow-panel: 0 20px 55px rgba(0, 0, 0, 0.25);
+  --nav-shadow-tooltip: 0 4px 20px rgba(0, 0, 0, 0.6);
+
+  --nav-focus-ring: rgba(180, 245, 199, 0.95);
+  --nav-focus-shadow: 0 0 0 5px rgba(74, 222, 128, 0.18);
+}

@@ -1,0 +1,10 @@
+name = "simple-nav-page"
+main = "worker.js"
+compatibility_date = "2026-06-07"
+workers_dev = true
+
+# Replace both ids after creating KV namespaces with Wrangler.
+[[kv_namespaces]]
+binding = "CONFIG_KV"
+id = "replace-with-production-kv-namespace-id"
+preview_id = "replace-with-preview-kv-namespace-id"
