@@ -639,7 +639,10 @@ function normalizeLegacyConfig(config) {
     copy.site.title = '澄砚导航';
   }
   if (copy.tabTitle?.normalTitle === '一站导航') {
-    copy.tabTitle.normalTitle = '澄砚导航';
+    copy.tabTitle.normalTitle = '澄砚导航 - 个人常用网站与 AI 工具导航';
+  }
+  if (copy.tabTitle?.normalTitle === '澄砚导航') {
+    copy.tabTitle.normalTitle = '澄砚导航 - 个人常用网站与 AI 工具导航';
   }
   return copy;
 }

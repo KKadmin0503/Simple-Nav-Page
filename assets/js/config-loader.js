@@ -80,7 +80,10 @@ function sanitizeConfig(config) {
       config.site.title = '澄砚导航';
     }
     if (config.tabTitle?.normalTitle === '一站导航') {
-      config.tabTitle.normalTitle = '澄砚导航';
+      config.tabTitle.normalTitle = '澄砚导航 - 个人常用网站与 AI 工具导航';
+    }
+    if (config.tabTitle?.normalTitle === '澄砚导航') {
+      config.tabTitle.normalTitle = '澄砚导航 - 个人常用网站与 AI 工具导航';
     }
   }
   return config;

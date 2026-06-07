@@ -68,7 +68,7 @@ function runWhenIdle(callback, timeout = 1500) {
 
 function applySiteConfig(config) {
   const site = config.site ?? {};
-  document.title = site.title || document.title;
+  document.title = config.tabTitle?.normalTitle || site.title || document.title;
 
   const titleEl = document.getElementById('siteTitle');
   if (titleEl) titleEl.textContent = site.title ?? '';
@@ -84,7 +84,7 @@ function applySiteConfig(config) {
       headerIcon.innerHTML = '';
       const logo = document.createElement('img');
       logo.src = logoUrl;
-      logo.alt = '';
+      logo.alt = `${site.title || '澄砚导航'} Logo`;
       logo.decoding = 'async';
       logo.width = 46;
       logo.height = 46;
