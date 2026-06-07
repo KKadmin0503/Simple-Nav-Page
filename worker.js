@@ -105,6 +105,9 @@ const MAX_TOOL_HTML_LENGTH = 250_000;
 const MAX_TOOL_COUNT = 50;
 const MAX_TOOLS_TOTAL_BYTES = 5 * 1024 * 1024;
 const SITE_META_MAX_HTML_LENGTH = 250_000;
+const SITE_META_CONTEXT_PAGE_LIMIT = 2;
+const SITE_META_CONTEXT_PAGE_TIMEOUT = 3500;
+const SITE_META_AI_TEXT_LIMIT = 3600;
 const TOOL_CONTENT_SECURITY_POLICY = [
   'sandbox allow-scripts allow-forms allow-popups allow-downloads',
   "default-src 'self' https: data: blob:",
@@ -255,15 +258,16 @@ function getApiDocs() {
     },
     siteMeta: {
       adminRead: 'GET /api/admin/site-meta?url=https://example.com',
-      description: '管理员填入 URL 后，Worker 读取目标页面标题、描述和 favicon；配置 AI 后会补全简介、关键词和图标候选',
+      description: '管理员填入 URL 后，Worker 读取目标页面标题、描述、正文摘要、结构化数据和 favicon；配置 AI 后会补全具体简介、完整简介、关键词和图标候选',
       response: {
         ok: true,
         url: 'https://example.com/',
         title: 'Example Domain',
-        description: '站点简介',
+        description: '适合前台卡片展示的短简介',
+        summary: '更完整的站点简介，可用于搜索关键词和后续扩展说明。',
         icon: 'https://example.com/favicon.ico',
         iconCandidates: ['https://example.com/favicon.ico'],
-        keywords: 'Example Domain 站点简介 example.com',
+        keywords: 'Example Domain 短简介 完整简介 example.com',
         fallbackIcon: 'https://example.com/favicon.ico',
         aiUsed: true
       }
@@ -642,33 +646,66 @@ async function fetchSiteMeta(url, env) {
     const html = (await response.text()).slice(0, SITE_META_MAX_HTML_LENGTH);
     const finalUrl = response.url || target;
     const final = new URL(finalUrl);
+    if (isBlockedMetadataHost(final.hostname)) {
+      return jsonResponse({ error: '目标地址重定向到了不支持的内网或本地地址' }, 400);
+    }
     const origin = final.origin;
     const hostname = final.hostname;
+    const pageMeta = extractSitePageMeta(html, finalUrl);
     const rawTitle =
-      getMetaContent(html, 'property', 'og:title')
-      || getMetaContent(html, 'name', 'twitter:title')
+      pageMeta.ogTitle
+      || pageMeta.twitterTitle
+      || pageMeta.applicationName
+      || pageMeta.headings[0]
       || getTitle(html);
     const title = cleanMetaText(rawTitle, 80);
     const description = cleanMetaText(
-      getMetaContent(html, 'name', 'description')
-      || getMetaContent(html, 'property', 'og:description')
-      || getMetaContent(html, 'name', 'twitter:description')
+      pageMeta.description
+      || pageMeta.ogDescription
+      || pageMeta.twitterDescription
+      || pageMeta.schemaDescription
+      || pageMeta.headings.slice(0, 3).join('，')
     );
     const icon = resolveIconUrl(html, finalUrl);
     const fallbackIcon = `${origin}/favicon.ico`;
-    const baseIconCandidates = buildIconCandidates(icon, fallbackIcon, final);
+    const baseIconCandidates = buildIconCandidates(icon, fallbackIcon, final, pageMeta.icons);
     const aiConfig = await readAiSiteMetaConfig(env);
+    const aiContext = aiConfig ? await buildSiteMetaAiContext({
+      html,
+      finalUrl,
+      hostname,
+      title,
+      description,
+      pageMeta
+    }) : null;
     const aiMeta = aiConfig ? await enhanceSiteMetaWithAi(aiConfig, {
       url: finalUrl,
       hostname,
       title,
       description,
-      htmlText: htmlToText(html),
+      language: pageMeta.language,
+      siteName: pageMeta.siteName,
+      applicationName: pageMeta.applicationName,
+      schema: pageMeta.schema,
+      headings: pageMeta.headings,
+      semanticLinks: pageMeta.semanticLinks,
+      htmlText: aiContext.text,
+      extraPages: aiContext.extraPages,
       iconCandidates: baseIconCandidates
     }) : null;
     const finalTitle = cleanMetaText(aiMeta?.title || title || hostname, 80);
-    const finalDescription = cleanMetaText(aiMeta?.description || description, 180);
-    const finalKeywords = cleanMetaText(aiMeta?.keywords || buildKeywords(finalTitle, finalDescription, hostname), 220);
+    const finalDescription = cleanMetaText(
+      aiMeta?.description || description || pageMeta.bestText || buildFallbackDescription(finalTitle, hostname),
+      180
+    );
+    const finalSummary = cleanMetaText(
+      aiMeta?.summary || pageMeta.schema?.description || pageMeta.bestText || finalDescription,
+      240
+    );
+    const finalKeywords = cleanMetaText(
+      aiMeta?.keywords || buildKeywords(finalTitle, finalDescription, hostname, pageMeta.keywords, finalSummary),
+      260
+    );
     const aiIconCandidates = Array.isArray(aiMeta?.iconCandidates) ? aiMeta.iconCandidates : [];
     const iconCandidates = uniqueUrls([
       aiMeta?.icon,
@@ -682,6 +719,7 @@ async function fetchSiteMeta(url, env) {
       url: finalUrl,
       title: finalTitle,
       description: finalDescription,
+      summary: finalSummary,
       icon: checkedIcon || iconCandidates[0] || fallbackIcon,
       iconCandidates,
       keywords: finalKeywords,
@@ -995,11 +1033,14 @@ async function enhanceSiteMetaWithAi(ai, meta) {
             role: 'system',
             content: [
               '你是导航站点信息整理助手。',
-              '根据用户提供的 URL、域名、网页标题、网页简介和网页正文摘要，补全适合中文导航页展示的站点信息。',
+              '根据用户提供的 URL、域名、网页标题、结构化数据、标题层级、语义链接、首页正文摘要和补充页面摘要，补全适合中文导航页展示的站点信息。',
+              '先判断网站的真实用途、核心功能和主要受众，再写中文信息。不要照抄英文 slogan，不要使用空泛表达。',
               '必须只返回 JSON 对象，不要 Markdown。',
-              'JSON 字段：title, description, keywords, icon, iconCandidates。',
-              'description 用简洁中文，20 到 60 字，说明这个网站具体做什么。',
-              'keywords 是空格分隔关键词，包含中文用途词和站点名。',
+              'JSON 字段：title, description, summary, keywords, icon, iconCandidates。',
+              'title 保留官方名称或常用中文名，最长 30 个中文字符。',
+              'description 用于导航卡片展示，20 到 60 个中文字符，必须具体说明这个网站能做什么。',
+              'summary 是更完整的站点简介，60 到 120 个中文字符，可说明功能、场景和适合谁使用。',
+              'keywords 是空格分隔关键词，包含中文用途词、站点名、品牌名和常见搜索词。',
               'iconCandidates 是图标 URL 数组，优先返回官网 favicon、apple-touch-icon、品牌资源路径或可信图标源。',
               ai.iconSearchEnabled ? '如果页面没有明确图标，可以根据域名推断常见图标路径，例如 /favicon.ico、/apple-touch-icon.png、/assets/favicon.ico。' : '不要主动推断额外图标，只能整理已提供的候选。'
             ].join('\n')
@@ -1011,7 +1052,14 @@ async function enhanceSiteMetaWithAi(ai, meta) {
               hostname: meta.hostname,
               title: meta.title,
               description: meta.description,
-              htmlText: meta.htmlText.slice(0, 1800),
+              language: meta.language,
+              siteName: meta.siteName,
+              applicationName: meta.applicationName,
+              schema: meta.schema,
+              headings: meta.headings,
+              semanticLinks: meta.semanticLinks,
+              pageSummary: meta.htmlText.slice(0, SITE_META_AI_TEXT_LIMIT),
+              extraPages: meta.extraPages,
               iconCandidates: meta.iconCandidates
             })
           }
@@ -1030,6 +1078,7 @@ async function enhanceSiteMetaWithAi(ai, meta) {
     return {
       title: cleanMetaText(parsed.title, 80),
       description: cleanMetaText(parsed.description, 180),
+      summary: cleanMetaText(parsed.summary, 240),
       keywords: cleanMetaText(parsed.keywords, 220),
       icon: String(parsed.icon || '').trim(),
       iconCandidates: Array.isArray(parsed.iconCandidates)
@@ -1072,17 +1121,32 @@ async function pickReachableIcon(candidates) {
 
 async function isReachableImage(url) {
   try {
-    const response = await fetch(url, {
+    const headResponse = await fetch(url, {
       method: 'HEAD',
       redirect: 'follow',
       headers: { Accept: 'image/*,*/*;q=0.5' }
     });
-    if (!response.ok) return false;
-    const contentType = (response.headers.get('Content-Type') || '').toLowerCase();
-    return !contentType || contentType.includes('image') || contentType.includes('octet-stream');
+    if (isImageResponse(headResponse)) return true;
+    if (headResponse.ok && headResponse.status !== 405) return false;
+
+    const getResponse = await fetch(url, {
+      method: 'GET',
+      redirect: 'follow',
+      headers: {
+        Accept: 'image/*,*/*;q=0.5',
+        Range: 'bytes=0-2048'
+      }
+    });
+    return isImageResponse(getResponse);
   } catch {
     return false;
   }
+}
+
+function isImageResponse(response) {
+  if (!response?.ok && response?.status !== 206) return false;
+  const contentType = (response.headers.get('Content-Type') || '').toLowerCase();
+  return !contentType || contentType.includes('image') || contentType.includes('octet-stream');
 }
 
 function getTitle(html) {
@@ -1102,6 +1166,277 @@ function getMetaContent(html, attrName, attrValue) {
   }
 
   return '';
+}
+
+function extractSitePageMeta(html, baseUrl) {
+  const language = getHtmlLanguage(html);
+  const description = getMetaContent(html, 'name', 'description');
+  const keywords = getMetaContent(html, 'name', 'keywords');
+  const ogTitle = getMetaContent(html, 'property', 'og:title');
+  const ogDescription = getMetaContent(html, 'property', 'og:description');
+  const twitterTitle = getMetaContent(html, 'name', 'twitter:title');
+  const twitterDescription = getMetaContent(html, 'name', 'twitter:description');
+  const siteName = getMetaContent(html, 'property', 'og:site_name');
+  const applicationName =
+    getMetaContent(html, 'name', 'application-name')
+    || getMetaContent(html, 'name', 'apple-mobile-web-app-title');
+  const schema = extractJsonLdSummary(html);
+  const headings = extractHeadings(html);
+  const semanticLinks = extractSemanticLinks(html, baseUrl);
+  const icons = extractIconUrls(html, baseUrl);
+  const bestText = cleanMetaText(
+    description
+    || ogDescription
+    || twitterDescription
+    || schema.description
+    || headings.slice(0, 3).join('，'),
+    220
+  );
+
+  return {
+    language,
+    description,
+    keywords,
+    ogTitle,
+    ogDescription,
+    twitterTitle,
+    twitterDescription,
+    siteName,
+    applicationName,
+    schema,
+    schemaDescription: schema.description,
+    headings,
+    semanticLinks,
+    icons,
+    bestText
+  };
+}
+
+function getHtmlLanguage(html) {
+  const attrs = parseHtmlAttrs(String(html || '').match(/<html\s+[^>]*>/i)?.[0] || '');
+  return cleanMetaText(attrs.lang || attrs['xml:lang'] || '', 24);
+}
+
+function extractHeadings(html) {
+  const headings = [];
+  const pattern = /<h([1-3])[^>]*>([\s\S]*?)<\/h\1>/gi;
+  let match;
+
+  while ((match = pattern.exec(String(html || ''))) && headings.length < 12) {
+    const text = cleanMetaText(match[2], 90);
+    if (text && !headings.includes(text)) headings.push(text);
+  }
+
+  return headings;
+}
+
+function extractIconUrls(html, baseUrl) {
+  const tagPattern = /<link\s+[^>]*>/gi;
+  const tags = String(html || '').match(tagPattern) || [];
+  const icons = [];
+
+  for (const tag of tags) {
+    const attrs = parseHtmlAttrs(tag);
+    const rel = String(attrs.rel || '').toLowerCase();
+    if (!attrs.href) continue;
+    if (
+      rel.includes('icon')
+      || rel.includes('mask-icon')
+      || rel.includes('manifest')
+      || rel.includes('fluid-icon')
+      || rel.includes('shortcut')
+    ) {
+      icons.push(attrs.href);
+    }
+  }
+
+  return uniqueUrls(icons, baseUrl).slice(0, 10);
+}
+
+function extractSemanticLinks(html, baseUrl) {
+  const anchors = [];
+  const pattern = /<a\s+[^>]*href\s*=\s*("([^"]*)"|'([^']*)'|([^\s"'=<>`]+))[^>]*>([\s\S]*?)<\/a>/gi;
+  const keywords = [
+    'about', 'intro', 'product', 'products', 'feature', 'features', 'pricing', 'docs', 'document', 'guide',
+    'help', 'support', 'download', 'app', 'apps', 'developer', 'api', 'blog',
+    '关于', '介绍', '产品', '功能', '价格', '定价', '文档', '指南', '帮助', '支持', '下载', '开发者'
+  ];
+  let match;
+
+  while ((match = pattern.exec(String(html || ''))) && anchors.length < 20) {
+    const href = match[2] ?? match[3] ?? match[4] ?? '';
+    const text = cleanMetaText(match[5], 80);
+    if (!href || !text) continue;
+
+    const scoreSource = `${href} ${text}`.toLowerCase();
+    if (!keywords.some(keyword => scoreSource.includes(keyword.toLowerCase()))) continue;
+
+    try {
+      const url = new URL(href, baseUrl);
+      const base = new URL(baseUrl);
+      if (url.hostname !== base.hostname || isBlockedMetadataHost(url.hostname)) continue;
+      anchors.push({ text, url: url.toString() });
+    } catch {
+      // Ignore malformed links.
+    }
+  }
+
+  return dedupeObjects(anchors, item => item.url).slice(0, 8);
+}
+
+function extractJsonLdSummary(html) {
+  const scripts = String(html || '').match(/<script\b[^>]*type\s*=\s*["']application\/ld\+json["'][^>]*>[\s\S]*?<\/script>/gi) || [];
+  const nodes = [];
+
+  for (const script of scripts.slice(0, 6)) {
+    const jsonText = script.replace(/^<script\b[^>]*>/i, '').replace(/<\/script>$/i, '').trim();
+    const parsed = parseJsonSafe(decodeHtml(jsonText));
+    collectJsonLdNodes(parsed, nodes);
+  }
+
+  const best = nodes.find(node => {
+    const type = Array.isArray(node['@type']) ? node['@type'].join(' ') : String(node['@type'] || '');
+    return /WebSite|Organization|SoftwareApplication|WebApplication|Product|Service/i.test(type);
+  }) || nodes[0] || {};
+
+  return {
+    type: cleanMetaText(Array.isArray(best['@type']) ? best['@type'].join(' ') : best['@type'], 80),
+    name: cleanMetaText(best.name || best.alternateName || best.headline, 100),
+    description: cleanMetaText(best.description || best.abstract, 220),
+    keywords: Array.isArray(best.keywords)
+      ? best.keywords.map(item => cleanMetaText(item, 40)).filter(Boolean).join(' ')
+      : cleanMetaText(best.keywords, 180)
+  };
+}
+
+function collectJsonLdNodes(value, nodes) {
+  if (!value || nodes.length >= 20) return;
+  if (Array.isArray(value)) {
+    value.forEach(item => collectJsonLdNodes(item, nodes));
+    return;
+  }
+  if (!isPlainObject(value)) return;
+
+  if (Array.isArray(value['@graph'])) {
+    value['@graph'].forEach(item => collectJsonLdNodes(item, nodes));
+  }
+  nodes.push(value);
+}
+
+function parseJsonSafe(value) {
+  try {
+    return JSON.parse(String(value || ''));
+  } catch {
+    return null;
+  }
+}
+
+async function buildSiteMetaAiContext({ html, finalUrl, hostname, title, description, pageMeta }) {
+  const mainText = createPageSummaryText(html);
+  const extraPages = [];
+  const contextUrls = pickContextUrls(pageMeta.semanticLinks, finalUrl);
+
+  for (const contextUrl of contextUrls) {
+    const page = await fetchSiteContextPage(contextUrl, hostname);
+    if (page) extraPages.push(page);
+  }
+
+  const text = [
+    `首页标题：${title || ''}`,
+    `首页简介：${description || ''}`,
+    pageMeta.headings.length ? `首页标题层级：${pageMeta.headings.join(' / ')}` : '',
+    pageMeta.schema?.description ? `结构化简介：${pageMeta.schema.description}` : '',
+    mainText ? `首页正文摘要：${mainText}` : '',
+    ...extraPages.map(page => `${page.label}：${page.text}`)
+  ].filter(Boolean).join('\n').slice(0, SITE_META_AI_TEXT_LIMIT);
+
+  return { text, extraPages };
+}
+
+function createPageSummaryText(html) {
+  return htmlToText(String(html || '')
+    .replace(/<nav[\s\S]*?<\/nav>/gi, ' ')
+    .replace(/<footer[\s\S]*?<\/footer>/gi, ' ')
+    .replace(/<header[\s\S]*?<\/header>/gi, ' ')
+    .replace(/<svg[\s\S]*?<\/svg>/gi, ' ')
+    .replace(/<form[\s\S]*?<\/form>/gi, ' '))
+    .slice(0, 2200);
+}
+
+function pickContextUrls(links, finalUrl) {
+  const base = new URL(finalUrl);
+  const scored = (Array.isArray(links) ? links : [])
+    .map(link => ({
+      ...link,
+      score: scoreContextLink(link, base)
+    }))
+    .filter(link => link.score > 0)
+    .sort((a, b) => b.score - a.score);
+
+  return dedupeObjects(scored, item => item.url)
+    .slice(0, SITE_META_CONTEXT_PAGE_LIMIT)
+    .map(item => item.url);
+}
+
+function scoreContextLink(link, base) {
+  let url;
+  try {
+    url = new URL(link.url);
+  } catch {
+    return 0;
+  }
+  if (url.hostname !== base.hostname) return 0;
+
+  const source = `${url.pathname} ${link.text}`.toLowerCase();
+  let score = 0;
+  [
+    ['about', 8], ['关于', 8], ['intro', 7], ['介绍', 7],
+    ['product', 7], ['产品', 7], ['feature', 6], ['功能', 6],
+    ['docs', 5], ['文档', 5], ['guide', 4], ['指南', 4],
+    ['download', 3], ['下载', 3], ['pricing', 2], ['价格', 2], ['定价', 2]
+  ].forEach(([keyword, weight]) => {
+    if (source.includes(keyword)) score += weight;
+  });
+  return score;
+}
+
+async function fetchSiteContextPage(url, expectedHostname) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), SITE_META_CONTEXT_PAGE_TIMEOUT);
+
+  try {
+    const target = new URL(url);
+    if (target.hostname !== expectedHostname || isBlockedMetadataHost(target.hostname)) return null;
+
+    const response = await fetch(target.toString(), {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; SimpleNavPage/1.0; +https://workers.dev)',
+        Accept: 'text/html,application/xhtml+xml'
+      },
+      redirect: 'follow',
+      signal: controller.signal
+    });
+    if (!response.ok) return null;
+
+    const contentType = (response.headers.get('Content-Type') || '').toLowerCase();
+    if (contentType && !contentType.includes('text/html') && !contentType.includes('application/xhtml')) return null;
+
+    const html = (await response.text()).slice(0, 80_000);
+    const title = cleanMetaText(getTitle(html), 80);
+    const text = createPageSummaryText(html).slice(0, 900);
+    if (!text) return null;
+
+    return {
+      url: response.url || target.toString(),
+      title,
+      label: title ? `补充页面 ${title}` : `补充页面 ${target.pathname}`,
+      text
+    };
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 function resolveIconUrl(html, baseUrl) {
@@ -1128,11 +1463,12 @@ function resolveIconUrl(html, baseUrl) {
   }
 }
 
-function buildIconCandidates(icon, fallbackIcon, finalUrl) {
+function buildIconCandidates(icon, fallbackIcon, finalUrl, extraIcons = []) {
   const origin = finalUrl.origin;
   const hostname = finalUrl.hostname;
   return uniqueUrls([
     icon,
+    ...extraIcons,
     fallbackIcon,
     `${origin}/apple-touch-icon.png`,
     `${origin}/apple-touch-icon-precomposed.png`,
@@ -1154,6 +1490,20 @@ function uniqueUrls(values, baseUrl) {
     seen.add(normalized);
     result.push(normalized);
   });
+
+  return result;
+}
+
+function dedupeObjects(values, getKey) {
+  const seen = new Set();
+  const result = [];
+
+  for (const value of values) {
+    const key = String(getKey(value) || '').trim();
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    result.push(value);
+  }
 
   return result;
 }
@@ -1201,8 +1551,13 @@ function cleanMetaText(value, maxLength = 160) {
     .slice(0, maxLength);
 }
 
-function buildKeywords(title, description, hostname) {
-  return [title, description, hostname]
+function buildFallbackDescription(title, hostname) {
+  const name = cleanMetaText(title || hostname, 40);
+  return `${name} 的网站入口和常用服务导航`;
+}
+
+function buildKeywords(title, description, hostname, ...extras) {
+  return [title, description, hostname, ...extras]
     .filter(Boolean)
     .join(' ')
     .replace(/\s+/g, ' ')

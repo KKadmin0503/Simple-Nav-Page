@@ -162,7 +162,7 @@ npm run worker:deploy
 - `POST /api/analytics/visit`：记录一次访问，并返回总访问、今日访问和点击统计。
 - `GET /api/analytics`：读取访问和点击统计。
 - `POST /api/analytics/click`：记录一次站点点击，用于动态生成“常用”分区。
-- `GET /api/admin/site-meta?url=`：管理员根据 URL 自动读取站点标题、描述和图标，配置 AI 后补全简介、关键词和图标候选。
+- `GET /api/admin/site-meta?url=`：管理员根据 URL 自动读取站点标题、描述、结构化数据、正文摘要和图标，配置 AI 后补全具体简介、完整简介、关键词和图标候选。
 
 字段限制：
 
@@ -192,7 +192,7 @@ npm run worker:deploy
 - 背景接口失败时是否回退到固定图片或默认背景。
 - favicon 失败时是否显示默认占位图。
 - 后台“站点和图标”里是否能切换 DuckDuckGo/Google 图标源。
-- 后台“分类站点”里填入 URL 后，“自动匹配”是否能回填标题、描述、图标和搜索关键词；配置 AI 后是否显示 AI 补全状态。
+- 后台“分类站点”里填入 URL 后，“自动匹配”是否能回填标题、描述、图标和搜索关键词；配置 AI 后是否显示具体简介、完整简介和 AI 补全状态。
 - 后台未登录时是否禁用 Worker 远程操作。
 - 删除类操作是否出现确认框。
 - Worker 未配置 `ADMIN_PASSWORD` 或 `CONFIG_KV` 时是否返回清晰错误。

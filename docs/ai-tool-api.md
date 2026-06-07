@@ -183,7 +183,7 @@ Content-Type: application/json
 
 ## 自动匹配站点信息
 
-后台“分类站点”页的“自动匹配”按钮会调用这个接口。Worker 会先读取目标页面的 `title`、`meta description`、OpenGraph/Twitter 元信息和 favicon；如果后台已配置 OpenAI 兼容 AI 接口，还会让 AI 根据 URL、域名和网页摘要补全更具体的中文简介、搜索关键词和图标候选。
+后台“分类站点”页的“自动匹配”按钮会调用这个接口。Worker 会先读取目标页面的 `title`、`meta description`、OpenGraph/Twitter 元信息、JSON-LD 结构化数据、标题层级、语义链接和 favicon；如果后台已配置 OpenAI 兼容 AI 接口，还会抓取少量同域名说明页摘要，让 AI 根据这些信息补全更具体的中文简介、完整简介、搜索关键词和图标候选。
 
 ```http
 GET /api/admin/site-meta?url=https%3A%2F%2Fexample.com%2F
@@ -197,13 +197,14 @@ Authorization: Bearer <token>
   "ok": true,
   "url": "https://example.com/",
   "title": "Example Domain",
-  "description": "站点简介",
+  "description": "适合前台卡片展示的短简介",
+  "summary": "更完整的站点简介，可用于搜索关键词和后续扩展说明。",
   "icon": "https://example.com/favicon.ico",
   "iconCandidates": [
     "https://example.com/favicon.ico",
     "https://example.com/apple-touch-icon.png"
   ],
-  "keywords": "Example Domain 站点简介 example.com",
+  "keywords": "Example Domain 短简介 完整简介 example.com",
   "fallbackIcon": "https://example.com/favicon.ico",
   "aiUsed": true
 }
@@ -213,6 +214,7 @@ Authorization: Bearer <token>
 
 - `url` 只允许 `http` 和 `https`，会拒绝 `localhost`、内网 IP 和 `.local` 地址。
 - `title` 用于站点标题，`description` 用于前台卡片描述。
+- `summary` 是更完整的站点简介，后台会合并进 `data-desc` 参与前台搜索。
 - `icon` 优先使用 AI 或页面声明的可访问图标；失败时可使用 `fallbackIcon`。
 - `iconCandidates` 会包含 AI 推断、页面声明、常见 favicon 路径和 Google/DuckDuckGo 图标源。
 - `keywords` 可写入 `data-desc`，用于前台搜索。

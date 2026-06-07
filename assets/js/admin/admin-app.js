@@ -702,7 +702,7 @@ async function matchSiteMeta(card, section, itemIndex) {
     title: data.title || item.title,
     icon: data.icon || iconCandidates[0] || data.fallbackIcon || item.icon || '',
     desc: data.description || item.desc || '',
-    'data-desc': data.keywords || data.description || item['data-desc'] || ''
+    'data-desc': compactText([data.keywords, data.description, data.summary]) || item['data-desc'] || ''
   };
 
   Object.entries(fields).forEach(([field, value]) => {
@@ -714,7 +714,7 @@ async function matchSiteMeta(card, section, itemIndex) {
   });
 
   setSaveProgress(false);
-  const aiText = data.aiUsed ? 'AI 已补全简介和图标候选' : '已使用网页元信息和图标候选';
+  const aiText = data.aiUsed ? 'AI 已补全具体简介、搜索关键词和图标候选' : '已使用网页元信息和图标候选';
   setStatus(`已匹配站点信息：${fields.title || url}，${aiText}。记得保存配置。`, 'ok');
 }
 
@@ -1440,6 +1440,26 @@ function setByPath(obj, path, value) {
 
 function isPlainObject(value) {
   return Object.prototype.toString.call(value) === '[object Object]';
+}
+
+function compactText(values, maxLength = 260) {
+  const seen = new Set();
+  const chunks = [];
+
+  values.forEach(value => {
+    String(value || '')
+      .split(/\s+/)
+      .map(item => item.trim())
+      .filter(Boolean)
+      .forEach(item => {
+        const key = item.toLowerCase();
+        if (seen.has(key)) return;
+        seen.add(key);
+        chunks.push(item);
+      });
+  });
+
+  return chunks.join(' ').slice(0, maxLength);
 }
 
 function setStatus(message, type = '') {
