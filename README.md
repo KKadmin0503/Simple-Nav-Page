@@ -235,7 +235,7 @@ Worker 需要配置：
 * `GET /api/links`：前台读取分类和站点
 * `GET /api/admin/links`：后台读取分类和站点
 * `PUT /api/admin/links`：后台保存分类和站点
-* `GET /api/admin/site-meta?url=`：后台根据 URL 自动匹配站点标题、描述和图标
+* `GET /api/admin/site-meta?url=`：后台根据 URL 自动匹配站点标题、描述、关键词和图标；配置 AI 后可补全简介和图标候选
 * `GET /api/tools`：公开读取小工具列表
 * `GET /api/admin/tools`：后台读取小工具列表
 * `PUT /api/admin/tools`：创建或更新小工具网站

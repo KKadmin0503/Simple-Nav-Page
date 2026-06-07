@@ -183,7 +183,7 @@ Content-Type: application/json
 
 ## 自动匹配站点信息
 
-后台“分类站点”页的“自动匹配”按钮会调用这个接口。它不依赖付费 AI 模型，而是由 Worker 读取目标页面的 `title`、`meta description`、OpenGraph/Twitter 元信息和 favicon，再回填站点表单。
+后台“分类站点”页的“自动匹配”按钮会调用这个接口。Worker 会先读取目标页面的 `title`、`meta description`、OpenGraph/Twitter 元信息和 favicon；如果后台已配置 OpenAI 兼容 AI 接口，还会让 AI 根据 URL、域名和网页摘要补全更具体的中文简介、搜索关键词和图标候选。
 
 ```http
 GET /api/admin/site-meta?url=https%3A%2F%2Fexample.com%2F
@@ -199,8 +199,13 @@ Authorization: Bearer <token>
   "title": "Example Domain",
   "description": "站点简介",
   "icon": "https://example.com/favicon.ico",
+  "iconCandidates": [
+    "https://example.com/favicon.ico",
+    "https://example.com/apple-touch-icon.png"
+  ],
   "keywords": "Example Domain 站点简介 example.com",
-  "fallbackIcon": "https://example.com/favicon.ico"
+  "fallbackIcon": "https://example.com/favicon.ico",
+  "aiUsed": true
 }
 ```
 
@@ -208,8 +213,26 @@ Authorization: Bearer <token>
 
 - `url` 只允许 `http` 和 `https`，会拒绝 `localhost`、内网 IP 和 `.local` 地址。
 - `title` 用于站点标题，`description` 用于前台卡片描述。
-- `icon` 优先使用页面声明的 `apple-touch-icon` 或 `icon`，失败时可使用 `fallbackIcon`。
+- `icon` 优先使用 AI 或页面声明的可访问图标；失败时可使用 `fallbackIcon`。
+- `iconCandidates` 会包含 AI 推断、页面声明、常见 favicon 路径和 Google/DuckDuckGo 图标源。
 - `keywords` 可写入 `data-desc`，用于前台搜索。
+- `aiUsed` 表示本次是否成功使用 AI 补全。AI 请求失败时接口仍会返回网页元信息兜底。
+
+### AI 接口配置
+
+在后台“基础配置 -> AI 自动匹配”里填写：
+
+- `启用 AI 补全站点信息`
+- `AI 接口地址`：OpenAI 兼容的 `chat/completions` 地址，例如 `https://api.openai.com/v1/chat/completions`
+- `API Key`
+- `模型`：例如 `gpt-4o-mini`、`deepseek-chat`
+- `AI 补充图标候选`：允许 AI 根据域名推断常见图标路径
+
+安全说明：
+
+- `GET /api/config` 会自动隐藏 `aiSiteMeta.apiKey`，不会把 Key 下发给前台。
+- `GET /api/admin/config` 需要管理员 Token，后台编辑时才能看到完整配置。
+- AI 只在管理员点击“自动匹配”时由 Worker 调用，不会在普通访客浏览前台时触发。
 
 ## 字段限制
 

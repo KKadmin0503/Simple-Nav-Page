@@ -697,9 +697,10 @@ async function matchSiteMeta(card, section, itemIndex) {
   }
 
   const item = section.items[itemIndex];
+  const iconCandidates = Array.isArray(data.iconCandidates) ? data.iconCandidates.filter(Boolean) : [];
   const fields = {
     title: data.title || item.title,
-    icon: data.icon || data.fallbackIcon || item.icon || '',
+    icon: data.icon || iconCandidates[0] || data.fallbackIcon || item.icon || '',
     desc: data.description || item.desc || '',
     'data-desc': data.keywords || data.description || item['data-desc'] || ''
   };
@@ -713,7 +714,8 @@ async function matchSiteMeta(card, section, itemIndex) {
   });
 
   setSaveProgress(false);
-  setStatus(`已匹配站点信息：${fields.title || url}。记得保存配置。`, 'ok');
+  const aiText = data.aiUsed ? 'AI 已补全简介和图标候选' : '已使用网页元信息和图标候选';
+  setStatus(`已匹配站点信息：${fields.title || url}，${aiText}。记得保存配置。`, 'ok');
 }
 
 function syncActiveSectionFromEditor() {
@@ -1039,6 +1041,10 @@ function readInputValue(input) {
   if (input.type === 'number') {
     if (input.name === 'analytics.popularLimit') {
       return Math.min(Math.max(Number(input.value) || 16, 1), 16);
+    }
+
+    if (input.name === 'aiSiteMeta.temperature') {
+      return Math.min(Math.max(Number(input.value) || 0, 0), 1);
     }
 
     return Number(input.value);

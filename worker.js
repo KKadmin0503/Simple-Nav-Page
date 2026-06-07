@@ -133,7 +133,7 @@ async function routeApi(request, env) {
   }
 
   if (url.pathname === '/api/config' && request.method === 'GET') {
-    return getConfig(env);
+    return getConfig(env, { public: true });
   }
 
   if (url.pathname === '/api/docs' && request.method === 'GET') {
@@ -195,7 +195,7 @@ async function routeApi(request, env) {
   if (url.pathname === '/api/admin/site-meta' && request.method === 'GET') {
     const auth = await requireAdmin(request, env);
     if (auth) return auth;
-    return fetchSiteMeta(url);
+    return fetchSiteMeta(url, env);
   }
 
   if (url.pathname === '/api/admin/tools' && request.method === 'GET') {
@@ -255,15 +255,17 @@ function getApiDocs() {
     },
     siteMeta: {
       adminRead: 'GET /api/admin/site-meta?url=https://example.com',
-      description: '管理员填入 URL 后，Worker 读取目标页面标题、描述和 favicon，用于后台站点表单自动回填',
+      description: '管理员填入 URL 后，Worker 读取目标页面标题、描述和 favicon；配置 AI 后会补全简介、关键词和图标候选',
       response: {
         ok: true,
         url: 'https://example.com/',
         title: 'Example Domain',
         description: '站点简介',
         icon: 'https://example.com/favicon.ico',
+        iconCandidates: ['https://example.com/favicon.ico'],
         keywords: 'Example Domain 站点简介 example.com',
-        fallbackIcon: 'https://example.com/favicon.ico'
+        fallbackIcon: 'https://example.com/favicon.ico',
+        aiUsed: true
       }
     },
     status: {
@@ -537,14 +539,14 @@ function getTodayKey() {
   return new Date(Date.now() + chinaOffsetMs).toISOString().slice(0, 10);
 }
 
-async function getConfig(env) {
+async function getConfig(env, options = {}) {
   const store = getConfigStore(env);
   if (!store) {
     return jsonResponse({ error: '未绑定 CONFIG_KV' }, 501);
   }
 
   const config = await store.get(CONFIG_KEY, 'json');
-  return jsonResponse(config || {});
+  return jsonResponse(options.public ? publicConfig(config || {}) : (config || {}));
 }
 
 async function saveConfig(request, env) {
@@ -600,7 +602,16 @@ async function saveLinks(request, env) {
   return jsonResponse({ ok: true, links, updatedAt: new Date().toISOString() });
 }
 
-async function fetchSiteMeta(url) {
+function publicConfig(config) {
+  if (!isPlainObject(config)) return {};
+  const copy = JSON.parse(JSON.stringify(config));
+  if (isPlainObject(copy.aiSiteMeta)) {
+    delete copy.aiSiteMeta.apiKey;
+  }
+  return copy;
+}
+
+async function fetchSiteMeta(url, env) {
   const target = normalizeTargetUrl(url.searchParams.get('url'));
   if (!target) {
     return jsonResponse({ error: 'url 无效或不支持内网地址' }, 400);
@@ -644,22 +655,68 @@ async function fetchSiteMeta(url) {
       || getMetaContent(html, 'name', 'twitter:description')
     );
     const icon = resolveIconUrl(html, finalUrl);
-    const keywords = buildKeywords(title, description, hostname);
+    const fallbackIcon = `${origin}/favicon.ico`;
+    const baseIconCandidates = buildIconCandidates(icon, fallbackIcon, final);
+    const aiConfig = await readAiSiteMetaConfig(env);
+    const aiMeta = aiConfig ? await enhanceSiteMetaWithAi(aiConfig, {
+      url: finalUrl,
+      hostname,
+      title,
+      description,
+      htmlText: htmlToText(html),
+      iconCandidates: baseIconCandidates
+    }) : null;
+    const finalTitle = cleanMetaText(aiMeta?.title || title || hostname, 80);
+    const finalDescription = cleanMetaText(aiMeta?.description || description, 180);
+    const finalKeywords = cleanMetaText(aiMeta?.keywords || buildKeywords(finalTitle, finalDescription, hostname), 220);
+    const aiIconCandidates = Array.isArray(aiMeta?.iconCandidates) ? aiMeta.iconCandidates : [];
+    const iconCandidates = uniqueUrls([
+      aiMeta?.icon,
+      ...aiIconCandidates,
+      ...baseIconCandidates
+    ], finalUrl);
+    const checkedIcon = await pickReachableIcon(iconCandidates);
 
     return jsonResponse({
       ok: true,
       url: finalUrl,
-      title: title || hostname,
-      description,
-      icon,
-      keywords,
-      fallbackIcon: `${origin}/favicon.ico`
+      title: finalTitle,
+      description: finalDescription,
+      icon: checkedIcon || iconCandidates[0] || fallbackIcon,
+      iconCandidates,
+      keywords: finalKeywords,
+      fallbackIcon,
+      aiUsed: Boolean(aiMeta)
     });
   } catch (err) {
     return jsonResponse({ error: `元信息获取失败：${err.name === 'AbortError' ? '请求超时' : err.message}` }, 502);
   } finally {
     clearTimeout(timer);
   }
+}
+
+async function readAiSiteMetaConfig(env) {
+  const store = getConfigStore(env);
+  if (!store) return null;
+
+  const config = await store.get(CONFIG_KEY, 'json');
+  const ai = config?.aiSiteMeta;
+  if (!isPlainObject(ai) || !ai.enabled) return null;
+
+  const endpoint = normalizeAiEndpoint(ai.endpoint);
+  const apiKey = String(ai.apiKey || '').trim();
+  const model = String(ai.model || '').trim();
+  if (!endpoint || !apiKey || !model) return null;
+
+  return {
+    endpoint,
+    apiKey,
+    model,
+    timeout: clampNumber(ai.timeout, 3000, 45000, 15000),
+    temperature: clampNumber(ai.temperature, 0, 1, 0.2),
+    maxTokens: Math.round(clampNumber(ai.maxTokens, 200, 2000, 600)),
+    iconSearchEnabled: ai.iconSearchEnabled !== false
+  };
 }
 
 async function listPublicTools(env) {
@@ -917,6 +974,117 @@ function isPrivateIpv4(host) {
   );
 }
 
+async function enhanceSiteMetaWithAi(ai, meta) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ai.timeout);
+
+  try {
+    const response = await fetch(ai.endpoint, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${ai.apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: ai.model,
+        temperature: ai.temperature,
+        max_tokens: ai.maxTokens,
+        response_format: { type: 'json_object' },
+        messages: [
+          {
+            role: 'system',
+            content: [
+              '你是导航站点信息整理助手。',
+              '根据用户提供的 URL、域名、网页标题、网页简介和网页正文摘要，补全适合中文导航页展示的站点信息。',
+              '必须只返回 JSON 对象，不要 Markdown。',
+              'JSON 字段：title, description, keywords, icon, iconCandidates。',
+              'description 用简洁中文，20 到 60 字，说明这个网站具体做什么。',
+              'keywords 是空格分隔关键词，包含中文用途词和站点名。',
+              'iconCandidates 是图标 URL 数组，优先返回官网 favicon、apple-touch-icon、品牌资源路径或可信图标源。',
+              ai.iconSearchEnabled ? '如果页面没有明确图标，可以根据域名推断常见图标路径，例如 /favicon.ico、/apple-touch-icon.png、/assets/favicon.ico。' : '不要主动推断额外图标，只能整理已提供的候选。'
+            ].join('\n')
+          },
+          {
+            role: 'user',
+            content: JSON.stringify({
+              url: meta.url,
+              hostname: meta.hostname,
+              title: meta.title,
+              description: meta.description,
+              htmlText: meta.htmlText.slice(0, 1800),
+              iconCandidates: meta.iconCandidates
+            })
+          }
+        ]
+      }),
+      signal: controller.signal
+    });
+
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    const content = data?.choices?.[0]?.message?.content;
+    const parsed = parseAiJson(content);
+    if (!isPlainObject(parsed)) return null;
+
+    return {
+      title: cleanMetaText(parsed.title, 80),
+      description: cleanMetaText(parsed.description, 180),
+      keywords: cleanMetaText(parsed.keywords, 220),
+      icon: String(parsed.icon || '').trim(),
+      iconCandidates: Array.isArray(parsed.iconCandidates)
+        ? parsed.iconCandidates.map(item => String(item || '').trim()).filter(Boolean).slice(0, 8)
+        : []
+    };
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function parseAiJson(content) {
+  if (isPlainObject(content)) return content;
+  const text = String(content || '').trim();
+  if (!text) return null;
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    const match = text.match(/\{[\s\S]*\}/);
+    if (!match) return null;
+    try {
+      return JSON.parse(match[0]);
+    } catch {
+      return null;
+    }
+  }
+}
+
+async function pickReachableIcon(candidates) {
+  for (const candidate of candidates.slice(0, 8)) {
+    if (await isReachableImage(candidate)) {
+      return candidate;
+    }
+  }
+  return '';
+}
+
+async function isReachableImage(url) {
+  try {
+    const response = await fetch(url, {
+      method: 'HEAD',
+      redirect: 'follow',
+      headers: { Accept: 'image/*,*/*;q=0.5' }
+    });
+    if (!response.ok) return false;
+    const contentType = (response.headers.get('Content-Type') || '').toLowerCase();
+    return !contentType || contentType.includes('image') || contentType.includes('octet-stream');
+  } catch {
+    return false;
+  }
+}
+
 function getTitle(html) {
   return decodeHtml(html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] || '');
 }
@@ -960,6 +1128,60 @@ function resolveIconUrl(html, baseUrl) {
   }
 }
 
+function buildIconCandidates(icon, fallbackIcon, finalUrl) {
+  const origin = finalUrl.origin;
+  const hostname = finalUrl.hostname;
+  return uniqueUrls([
+    icon,
+    fallbackIcon,
+    `${origin}/apple-touch-icon.png`,
+    `${origin}/apple-touch-icon-precomposed.png`,
+    `${origin}/favicon.svg`,
+    `${origin}/assets/favicon.ico`,
+    `${origin}/static/favicon.ico`,
+    `https://icons.duckduckgo.com/ip3/${hostname}.ico`,
+    `https://www.google.com/s2/favicons?sz=64&domain=${hostname}`
+  ], origin);
+}
+
+function uniqueUrls(values, baseUrl) {
+  const seen = new Set();
+  const result = [];
+
+  values.forEach(value => {
+    const normalized = normalizeIconCandidate(value, baseUrl);
+    if (!normalized || seen.has(normalized)) return;
+    seen.add(normalized);
+    result.push(normalized);
+  });
+
+  return result;
+}
+
+function normalizeIconCandidate(value, baseUrl) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  try {
+    const url = new URL(raw, baseUrl);
+    if (!['http:', 'https:'].includes(url.protocol)) return '';
+    if (isBlockedMetadataHost(url.hostname)) return '';
+    return url.toString();
+  } catch {
+    return '';
+  }
+}
+
+function htmlToText(html) {
+  return decodeHtml(String(html || '')
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<noscript[\s\S]*?<\/noscript>/gi, ' ')
+    .replace(/<[^>]+>/g, ' '))
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 3000);
+}
+
 function parseHtmlAttrs(tag) {
   const attrs = {};
   const pattern = /([a-zA-Z_:][-a-zA-Z0-9_:.]*)\s*=\s*("([^"]*)"|'([^']*)'|([^\s"'=<>`]+))/g;
@@ -986,6 +1208,25 @@ function buildKeywords(title, description, hostname) {
     .replace(/\s+/g, ' ')
     .trim()
     .slice(0, 220);
+}
+
+function normalizeAiEndpoint(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  try {
+    const url = new URL(raw);
+    if (url.protocol !== 'https:') return '';
+    if (isBlockedMetadataHost(url.hostname)) return '';
+    return url.toString();
+  } catch {
+    return '';
+  }
+}
+
+function clampNumber(value, min, max, fallback) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return fallback;
+  return Math.min(Math.max(number, min), max);
 }
 
 function decodeHtml(value) {

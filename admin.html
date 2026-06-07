@@ -118,6 +118,44 @@
         </section>
 
         <section class="panel">
+          <h2>AI 自动匹配</h2>
+          <label class="switch-row">
+            <span>启用 AI 补全站点信息</span>
+            <input name="aiSiteMeta.enabled" type="checkbox">
+          </label>
+          <label>
+            <span>AI 接口地址</span>
+            <input name="aiSiteMeta.endpoint" type="url" placeholder="https://api.openai.com/v1/chat/completions" aria-describedby="aiSiteMetaEndpointHint">
+            <small class="field-hint" id="aiSiteMetaEndpointHint">填写 OpenAI 兼容的 chat/completions 接口。Worker 会代为请求，Key 不会下发到前台。</small>
+          </label>
+          <label>
+            <span>API Key</span>
+            <input name="aiSiteMeta.apiKey" type="password" autocomplete="off" placeholder="sk-..." aria-describedby="aiSiteMetaKeyHint">
+            <small class="field-hint" id="aiSiteMetaKeyHint">只保存在后台配置里，公开配置接口会自动脱敏。</small>
+          </label>
+          <label>
+            <span>模型</span>
+            <input name="aiSiteMeta.model" type="text" placeholder="gpt-4o-mini / deepseek-chat">
+          </label>
+          <label class="switch-row">
+            <span>AI 补充图标候选</span>
+            <input name="aiSiteMeta.iconSearchEnabled" type="checkbox">
+          </label>
+          <label>
+            <span>超时时间 ms</span>
+            <input name="aiSiteMeta.timeout" type="number" min="3000" step="500">
+          </label>
+          <label>
+            <span>温度</span>
+            <input name="aiSiteMeta.temperature" type="number" min="0" max="1" step="0.1">
+          </label>
+          <label>
+            <span>最大输出 tokens</span>
+            <input name="aiSiteMeta.maxTokens" type="number" min="200" max="2000" step="50">
+          </label>
+        </section>
+
+        <section class="panel">
           <h2>统计和常用</h2>
           <label class="switch-row">
             <span>启用访问统计</span>
