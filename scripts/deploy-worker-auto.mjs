@@ -13,6 +13,7 @@ const staticEntries = [
   'admin.html',
   'robots.txt',
   'sitemap.xml',
+  'BingSiteAuth.xml',
   '13efb167ebb12c15bdab1609ebcb75f5.txt',
   'style.css',
   'links.json',
